@@ -1,0 +1,14 @@
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+	--gzvcf P.6_merged.vcf.gz
+	--freq
+	--out P.6_merged
+
+Using zlib version: 1.2.11
+After filtering, kept 1 out of 1 Individuals
+Outputting Frequency Statistics...
+After filtering, kept 26 out of a possible 26 Sites
+Run Time = 0.00 seconds
