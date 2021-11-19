@@ -1,13 +1,13 @@
-[M::mm_idx_gen::0.001*1.60] collected minimizers
-[M::mm_idx_gen::0.002*3.83] sorted minimizers
-[M::main::0.002*3.82] loaded/built the index for 1 target sequence(s)
-[M::mm_mapopt_update::0.002*3.58] mid_occ = 50
+[M::mm_idx_gen::0.001*1.66] collected minimizers
+[M::mm_idx_gen::0.002*3.86] sorted minimizers
+[M::main::0.002*3.84] loaded/built the index for 1 target sequence(s)
+[M::mm_mapopt_update::0.002*3.60] mid_occ = 50
 [M::mm_idx_stat] kmer size: 19; skip: 10; is_hpc: 0; #seq: 1
-[M::mm_idx_stat::0.002*3.42] distinct minimizers: 5470 (99.98% are singletons); average occurrences: 1.003; average spacing: 5.453; total length: 29903
-[M::worker_pipeline::0.007*1.80] mapped 1 sequences
+[M::mm_idx_stat::0.002*3.45] distinct minimizers: 5470 (99.98% are singletons); average occurrences: 1.003; average spacing: 5.453; total length: 29903
+[M::worker_pipeline::0.007*1.75] mapped 1 sequences
 [M::main] Version: 2.22-r1101
 [M::main] CMD: minimap2 -c -x asm20 --end-bonus 100 -t 20 --cs /home/mart/covid/wastewater_analysis/genome_data/NC_045512.2 EPI_ISL_1267416.fa
-[M::main] Real time: 0.007 sec; CPU: 0.013 sec; Peak RSS: 0.008 GB
+[M::main] Real time: 0.008 sec; CPU: 0.013 sec; Peak RSS: 0.008 GB
 25768 reference bases covered by exactly one contig
 18 substitutions; ts/tv = 3.500
 0 1bp deletions
