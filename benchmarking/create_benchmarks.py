@@ -6,8 +6,9 @@ import argparse
 import subprocess
 import pandas as pd
 from random import randint
+from math import log
 
-from select_samples import filter_fasta, read_metadata, add_nonN_count
+from select_samples import filter_fasta, read_metadata
 
 
 def main():
@@ -22,11 +23,12 @@ def main():
     parser.add_argument('--total_cov', dest='total_cov', default=10000, type=int, help="total sequencing depth to be simulated")
     parser.add_argument('--data_exploration_only', action='store_true', help="exit after sequence selection")
     parser.add_argument('--spike_only', action='store_true', help="simulate reads for spike region only")
+    parser.add_argument('--sub_error_rate', dest='sub_error_rate', default=1.0, type=float, help="error rate for art_illumina (substitution error)")
     args = parser.parse_args()
 
     # create output directory
     try:
-        os.mkdir(args.outdir)
+        os.makedirs(args.outdir)
     except FileExistsError:
         pass
 
@@ -64,6 +66,9 @@ def main():
         fasta_selection = trimmed_selection
         print("\nSpike sequences ready\n")
 
+    # sub error rate -> quality shift
+    quality_shift = round(10 * log((1 / args.sub_error_rate), 10))
+
     # simulate reads
     for VOC_freq in VOC_frequencies:
         # simulate reads for background sequences
@@ -72,7 +77,7 @@ def main():
         background_cov = round((total_cov - VOC_cov) / len(selection_df.index), 2)
         print("Simulating reads from {} at {}x coverage".format(fasta_selection,
                                                                 background_cov))
-        subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/background_{1}x -m 250 -s 10".format(fasta_selection, background_cov, args.outdir), shell=True)
+        subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/background_{1}x -m 250 -s 10 -qs {3} -qs2 {3}".format(fasta_selection, background_cov, args.outdir, quality_shift), shell=True)
         # simulate reads for VOC, then merge and shuffle
         for filename in VOC_files:
             VOC_name = filename.rstrip('.fasta').split('/')[-1]
@@ -82,7 +87,7 @@ def main():
                 voc_fasta = filename
             print("Simulating reads from {} at {}x coverage".format(VOC_name,
                                                                     VOC_cov))
-            subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/{3}_{1}x -m 250 -s 10".format(voc_fasta, VOC_cov, args.outdir, VOC_name), shell=True)
+            subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/{3}_{1}x -m 250 -s 10 -qs {4} -qs2 {4}".format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift), shell=True)
             print("\nMerging fastqs...")
             subprocess.check_call("cat {0}/background_{1}x1.fq {0}/{2}_{3}x1.fq > {0}/tmp1.fq".format(args.outdir, background_cov, VOC_name, VOC_cov), shell=True)
             subprocess.check_call("cat {0}/background_{1}x2.fq {0}/{2}_{3}x2.fq > {0}/tmp2.fq".format(args.outdir, background_cov, VOC_name, VOC_cov), shell=True)
@@ -97,13 +102,13 @@ def main():
 
 def select_benchmark_genomes(df, state, date, exclude_list):
     """Select genomes by location and date"""
-    state_df = df.loc[df["division"] == state]
+    state_df = df.loc[df["Location"].str.contains(state)]
     selection_df = state_df.loc[state_df["date"] == date]
     print("\nLineage counts for {} on {}:".format(state, date))
-    print(selection_df["pangolin_lineage"].value_counts())
+    print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
     selection_df = selection_df.loc[
-                        ~selection_df["pangolin_lineage"].isin(exclude_list)]
+                        ~selection_df["Pango lineage"].isin(exclude_list)]
     # # show number of samples per date
     # samples_per_date = state_df["date"].value_counts().sort_index()
     # print("Samples per date:")
