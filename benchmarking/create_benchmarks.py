@@ -23,7 +23,10 @@ def main():
     parser.add_argument('--total_cov', dest='total_cov', default=10000, type=int, help="total sequencing depth to be simulated")
     parser.add_argument('--data_exploration_only', action='store_true', help="exit after sequence selection")
     parser.add_argument('--spike_only', action='store_true', help="simulate reads for spike region only")
-    parser.add_argument('--sub_error_rate', dest='sub_error_rate', default=1.0, type=float, help="error rate for art_illumina (substitution error)")
+    parser.add_argument('--sub_error_rate', dest='sub_error_rate', default=1.0, type=float, help="substitution error rate for art_illumina")
+    parser.add_argument('--ins_error_rate', dest='ins_error_rate', default=1.0, type=float, help="insertion error rate for art_illumina")
+    parser.add_argument('--del_error_rate', dest='del_error_rate', default=1.0, type=float, help="deletion error rate for art_illumina")
+
     args = parser.parse_args()
 
     # create output directory
@@ -68,6 +71,13 @@ def main():
 
     # sub error rate -> quality shift
     quality_shift = round(10 * log((1 / args.sub_error_rate), 10))
+    # calculate insertion error rate
+    insRate1 = 0.00009 * args.ins_error_rate
+    insRate2 = 0.00015 * args.ins_error_rate
+    # calculate deletion error rate
+    delRate1 = 0.00011 * args.del_error_rate
+    delRate2 = 0.00023 * args.del_error_rate
+
 
     # simulate reads
     for VOC_freq in VOC_frequencies:
@@ -77,7 +87,7 @@ def main():
         background_cov = round((total_cov - VOC_cov) / len(selection_df.index), 2)
         print("Simulating reads from {} at {}x coverage".format(fasta_selection,
                                                                 background_cov))
-        subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/background_{1}x -m 250 -s 10 -qs {3} -qs2 {3}".format(fasta_selection, background_cov, args.outdir, quality_shift), shell=True)
+        subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/background_{1}x -m 250 -s 10 -qs {3} -qs2 {3} -ir {4} -ir2 {5} -dr {6} -dr2 {7}".format(fasta_selection, background_cov, args.outdir, quality_shift, insRate1, insRate2, delRate1, delRate2), shell=True)
         # simulate reads for VOC, then merge and shuffle
         for filename in VOC_files:
             VOC_name = filename.rstrip('.fasta').split('/')[-1]
@@ -87,7 +97,7 @@ def main():
                 voc_fasta = filename
             print("Simulating reads from {} at {}x coverage".format(VOC_name,
                                                                     VOC_cov))
-            subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/{3}_{1}x -m 250 -s 10 -qs {4} -qs2 {4}".format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift), shell=True)
+            subprocess.check_call("art_illumina -ss HS25 -i {0} -l 150 -f {1} -p -o {2}/{3}_{1}x -m 250 -s 10 -qs {4} -qs2 {4} -ir {5} -ir2 {6} -dr {7} -dr2 {8}".format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift, insRate1, insRate2, delRate1, delRate2), shell=True)
             print("\nMerging fastqs...")
             subprocess.check_call("cat {0}/background_{1}x1.fq {0}/{2}_{3}x1.fq > {0}/tmp1.fq".format(args.outdir, background_cov, VOC_name, VOC_cov), shell=True)
             subprocess.check_call("cat {0}/background_{1}x2.fq {0}/{2}_{3}x2.fq > {0}/tmp2.fq".format(args.outdir, background_cov, VOC_name, VOC_cov), shell=True)
