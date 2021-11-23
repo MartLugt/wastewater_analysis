@@ -38,6 +38,7 @@ ABUNDANCES = [
     100,
 ]
 REF = "reference_sets/USA"
+MIN_AB = 1
 
 pangolin = [x + "_EPI_ISL_" + y for x, y in zip(VOC, LIN)]
 
@@ -91,16 +92,34 @@ rule run_kallisto:
             ab=ABUNDANCES,
         ),
     output:
-        directory("benchmarks/{dataset}/out"),
+        expand(
+            "benchmarks/{{dataset}}/out/{voc}_ab{ab}/predictions_m{min_ab}.tsv",
+            voc=pangolin,
+            ab=ABUNDANCES,
+            min_ab=MIN_AB,
+        ),
+        dir=directory("benchmarks/{dataset}/out"),
     # script:
     #     "benchmarking/run_kallisto_snek.py"
+    params:
+        vocs=lambda wildcards, input: ",".join(VOC),
     run:
-        for wwsim in zip(input.wwsim1, input.wwsim2):
+        outdir = output.dir
+        shell("mkdir -p {outdir}")
+        for voc in pangolin:
             for ab in ABUNDANCES:
                 shell(
                     "kallisto quant -t {threads} -b {bootstraps} "
-                    "-i {input.idx} -o {output[0]}/{wwsim[2]}_ab{ab} "
-                    "{wwsim[0]} "
-                    "{wwsim[1]} "
-                    "| tee {output[0]}/{wwsim[2]}_ab{ab}.log"
+                    "-i {input.idx} -o {outdir}/{voc}_ab{ab} "
+                    "benchmarks/{wildcards.dataset}/wwsim_{voc}_ab{ab}_1.fastq "
+                    "benchmarks/{wildcards.dataset}/wwsim_{voc}_ab{ab}_2.fastq "
+                    "| tee {outdir}/{voc}_ab{ab}.log"
+                )
+                shell(
+                    "python pipeline/output_abuncances.py "
+                    "-m {MIN_AB} "
+                    "-o {outdir}/{voc}_ab{ab}/predictions_m{MIN_AB}.tsv "
+                    "--metadata {REF}/metadata.tsv "
+                    "--voc {params.vocs} "
+                    "{outdir}/{voc}_ab{ab}/abundance.tsv "
                 )
