@@ -119,10 +119,10 @@ def main():
     print("total # false positives: {}".format(false_pos_count))
     print("total # false negatives: {}".format(false_neg_count))
 
-    fpr = false_pos_count / (false_pos_count + true_neg_count)
-    fnr = false_neg_count / (false_neg_count + true_pos_count)
-    recall = true_pos_count / (true_pos_count + false_neg_count)
-    precision = true_pos_count / (true_pos_count + false_pos_count)
+    fpr = save_dev(false_pos_count, (false_pos_count + true_neg_count))
+    fnr = save_dev(false_neg_count, (false_neg_count + true_pos_count))
+    recall = save_dev(true_pos_count, (true_pos_count + false_neg_count))
+    precision = save_dev(true_pos_count, (true_pos_count + false_pos_count))
     print("FPR = {}".format(fpr))
     print("FNR = {}".format(fnr))
     print("Precision = {}".format(precision))
@@ -224,7 +224,11 @@ def main():
 
     return
 
-
+def save_dev(a: int, b: int):
+    if a == 0:
+        return 0
+    else:
+        return a / b
 
 if __name__ == "__main__":
     sys.exit(main())

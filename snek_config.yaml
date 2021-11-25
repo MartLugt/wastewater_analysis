@@ -1,13 +1,15 @@
 ref: "reference_sets/USA"
 
-min_ab: 1
-tot_cov: 10
+min_ab: 0.1
+tot_cov: 1000
 spike_only: true
 
 bootstraps: 10
 
-vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
-lineages: ["1008906", "1001460", "1924762", "1194849"]
+vocs: ["B.1.1.7"]
+lineages: ["1008906"]
+# vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
+# lineages: ["1008906", "1001460", "1924762", "1194849"]
 
 abundances:
   [
