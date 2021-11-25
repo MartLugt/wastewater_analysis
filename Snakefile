@@ -41,12 +41,12 @@ rule create_benchmark:
             "--voc_perc {params.percs} "
             "-m {input.metadata} -fr {input.fasta} "
             "-fv {params.vocs} "
-            "-o benchmarks/{wildcards.dataset} "
+            "-o benchmarks/{wildcards.dataset}_s{wildcards.sub_err}_i{wildcards.ins_err}_d{wildcards.del_err} "
             "--total_cov {config[tot_cov]} "
             "{params.spike} "
-            "--sub_error_rate {sub_err} "
-            "--ins_error_rate {ins_err} "
-            "--del_error_rate {del_err} "
+            "--sub_error_rate {wildcards.sub_err} "
+            "--ins_error_rate {wildcards.ins_err} "
+            "--del_error_rate {wildcards.del_err} "
         )
 
 
@@ -73,6 +73,7 @@ rule run_kallisto:
         dir=directory("benchmarks/{dataset}_s{sub_err}_i{ins_err}_d{del_err}/out"),
     params:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
+    threads: 12
     run:
         outdir = output.dir
         shell("mkdir -p {outdir}")
@@ -81,8 +82,8 @@ rule run_kallisto:
                 shell(
                     "kallisto quant -t {threads} -b {config[bootstraps]} "
                     "-i {input.idx} -o {outdir}/{voc}_ab{ab} "
-                    "benchmarks/{wildcards.dataset}/wwsim_{voc}_ab{ab}_1.fastq "
-                    "benchmarks/{wildcards.dataset}/wwsim_{voc}_ab{ab}_2.fastq "
+                    "benchmarks/{wildcards.dataset}_s{wildcards.sub_err}_i{wildcards.ins_err}_d{wildcards.del_err}/wwsim_{voc}_ab{ab}_1.fastq "
+                    "benchmarks/{wildcards.dataset}_s{wildcards.sub_err}_i{wildcards.ins_err}_d{wildcards.del_err}/wwsim_{voc}_ab{ab}_2.fastq "
                     "| tee {outdir}/{voc}_ab{ab}.log"
                 )
                 shell(
@@ -108,7 +109,7 @@ rule create_figs:
         "benchmarks/figs/{dataset}_s{sub_err}_i{ins_err}_d{del_err}/freq_error_plot.png",
         "benchmarks/figs/{dataset}_s{sub_err}_i{ins_err}_d{del_err}/freq_scatter_loglog.png",
         snek="benchmarks/figs/{dataset}_s{sub_err}_i{ins_err}_d{del_err}/info.snek",
-        dir=directory("figs/{dataset}_s{sub_err}_i{ins_err}_d{del_err}"),
+        dir=directory("benchmarks/figs/{dataset}_s{sub_err}_i{ins_err}_d{del_err}"),
     params:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
         json=lambda wildcards, input: json.dumps(config),
@@ -117,12 +118,18 @@ rule create_figs:
         "--voc {params.vocs} "
         "-m {config[min_ab]} "
         "-o {output.dir} "
-        "benchmarks/{wildcards.dataset}/out/*/predictions_m{config[min_ab]}.tsv && "
+        "benchmarks/{wildcards.dataset}_s{wildcards.sub_err}_i{wildcards.ins_err}_d{wildcards.del_err}/out/*/predictions_m{config[min_ab]}.tsv && "
         "echo {params.json} > {output.snek} "
 
 
 # rule create_figs_compare_error:
 #     input:
-
+#         lambda wildcards: expand(
+#             "benchmarks/{ds}/out/{voc}_ab{ab}/predictions_m{min_ab}.tsv",
+#             voc=pangolin,
+#             ab=config["abundances"],
+#             min_ab=config["min_ab"],
+#             ds=wildcards.list.split(","),
+#         ),
 #     output:
-#         "benchmarks/figs/error_compare/"
+#         touch("benchmarks/figs/error_compare/{dataset}/{list}"),

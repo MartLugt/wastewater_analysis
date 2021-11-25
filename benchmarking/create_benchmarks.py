@@ -70,7 +70,10 @@ def main():
         print("\nSpike sequences ready\n")
 
     # sub error rate -> quality shift
-    quality_shift = round(10 * log((1 / args.sub_error_rate), 10))
+    if args.sub_error_rate == 0:
+        quality_shift = 93 # Max positive quality shift.
+    else:
+        quality_shift = round(10 * log((1 / args.sub_error_rate), 10))
     # calculate insertion error rate
     insRate1 = 0.00009 * args.ins_error_rate
     insRate2 = 0.00015 * args.ins_error_rate
