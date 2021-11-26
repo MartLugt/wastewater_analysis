@@ -19,7 +19,7 @@ def main():
     parser.add_argument('-fr, --fasta_ref', dest='fasta_ref', required=True, type=str, help="fasta file representing full sequence database")
     parser.add_argument('-fv, --fasta_voc', dest='fasta_VOC', required=True, type=str, help="comma-separated list of fasta files for Variants Of Concern (VOC)")
     parser.add_argument('-o, --outdir', dest='outdir', required=True, type=str, help="output directory")
-    # parser.add_argument('--voc_perc', dest='voc_perc', required=True, type=str, help="comma-separated list of VOC frequencies (%) to be simulated")
+    parser.add_argument('--voc_perc', dest='voc_perc', required=True, type=str, help="comma-separated list of VOC frequencies (%) to be simulated")
     parser.add_argument('--err_perc', dest='err_perc', required=True, type=str, help="comma-separated list of error frequencies (%) to be simulated")
     parser.add_argument('--voc_cov', dest='voc_cov', default=10, type=int, help="coverage of the vocs")
     parser.add_argument('--total_cov', dest='total_cov', default=10000, type=int, help="total sequencing depth to be simulated")
@@ -121,8 +121,8 @@ def main():
             subprocess.check_call("cat {0}/background_s{2}_i{3}_d{4}_2.fq {0}/{1}_s{2}_i{3}_d{4}_2.fq > {0}/tmp2.fq"
                 .format(args.outdir, VOC_name, sub_err, ins_err, del_err), shell=True)
             print("Shuffling reads...")
-            subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_s{2}_i{3}_d{4}_1.fastq out2={0}/wwsim_{1}_s{2}_i{3}_d{4}_2.fastq overwrite=t fastawrap=0"
-                .format(args.outdir, VOC_name, sub_err, ins_err, del_err), shell=True)
+            subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{5}_s{2}_i{3}_d{4}_1.fastq out2={0}/wwsim_{1}_ab{5}_s{2}_i{3}_d{4}_2.fastq overwrite=t fastawrap=0"
+                .format(args.outdir, VOC_name, sub_err, ins_err, del_err, VOC_cov), shell=True)
         print("\nBenchmarks with a err frequency of {}% are ready!\n\n".format(err_freq))
     # clean up temporary files
     os.remove("{}/tmp1.fq".format(args.outdir))
