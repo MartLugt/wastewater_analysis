@@ -5,6 +5,10 @@ import os
 import copy
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.ticker as mticker
+from mpl_toolkits import mplot3d
+from scipy.interpolate import griddata
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
@@ -18,6 +22,8 @@ def main():
     parser.add_argument('-v,--verbose', dest='verbose', action='store_true')
     parser.add_argument('--min_err', dest='min_err', default=0, type=float, help="minimal error (any samples with true error below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--min_ab', dest='min_ab', default=0, type=float, help="minimal abundance (any samples with true abundance below this threshold are skipped; any predictions below this threshold are considered absent)")
+    parser.add_argument('--plot_error_value', dest='plot_err_val', default=1, type=float, help="error value for plots in which the error is not plotted. Default: 1")
+    parser.add_argument('--plot_abundance_value', dest='plot_ab_val', default=1, type=float, help="abundance value for plots in which the abundance is not plotted. Default: 1")
     parser.add_argument('--no_plots', action='store_true')
     parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="DOESNT WORK | comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
     parser.add_argument('--joint_average', action='store_true', help="DOESNT WORK")
@@ -109,7 +115,7 @@ def main():
                     else:
                         true_neg_count += 1
             true_neg_count += len([x for x in voc_list if
-                                    x not in positives and x != voc_name ])
+                                    x not in positives and x != voc_name])
 
 
     # compute stats
@@ -139,11 +145,12 @@ def main():
     # sort error tuples by voc frequency
     err_list.sort(key = lambda x : x[1])
     err_list_err = copy.deepcopy(err_list)
+    # sort second list by err frequency
     err_list_err.sort(key = lambda x : x[2])
     variant_list = sorted(list(variant_set))
 
     # fix color per voc
-    colormap = cm.get_cmap('Accent', len(variant_list))
+    colormap = cm.get_cmap('tab10', len(variant_list))
     colors = {voc : colormap((i)/len(variant_list))
                 for i, voc in enumerate(variant_list)}
 
@@ -180,8 +187,8 @@ def main():
     plt.rcParams.update({'font.size': 14}) # increase font size
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc]
-        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
+        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
         plt.plot(freq_values, err_values, label=voc, color=colors[voc])
     plt.legend()
     plt.grid(which="both", alpha=0.2)
@@ -205,8 +212,8 @@ def main():
 
     plt.figure()
     for voc in variant_list:
-        err_freq = [x[2] for x in err_list_err if x[0] == voc]
-        err_values = [x[3]/x[1]*100 for x in err_list_err if x[0] == voc]
+        err_freq = [x[2] for x in err_list_err if x[0] == voc and x[1] == args.plot_ab_val]
+        err_values = [x[3]/x[1]*100 for x in err_list_err if x[0] == voc and x[1] == args.plot_ab_val]
         plt.plot(err_freq, err_values, label=voc, color=colors[voc])
     plt.legend()
     plt.grid(which="both", alpha=0.2)
@@ -250,7 +257,94 @@ def main():
                                                          args.suffix,
                                                          format))
 
+    # plot scatter with error gradient for every voc
+    for voc in variant_list:
+        plt.figure()
+        freq_values = [x[1] for x in err_list_err if x[0] == voc]
+        est_values = [x[4] for x in err_list_err if x[0] == voc]
+        err_rate = [x[2] for x in err_list_err if x[0] == voc]
+        ## normalize error rate
+        # err_rate_normalized = [(x - min(err_rate)) / (max(err_rate) - min(err_rate)) for x in err_rate]
+
+        plt.scatter(freq_values, est_values, alpha=0.7, 
+                    c=err_rate, s=20, cmap='viridis')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlim(0.07, 150)
+        plt.ylim(0.07, 150)
+        plt.plot([0, 100], [0, 100], 'k-', lw=0.75)
+        # plt.legend(prop={'size': 12}) #ncol=len(variants_list),
+        plt.colorbar(label='error rate')
+        plt.grid(which="both", alpha=0.2)
+        plt.xlabel("True {} frequency (%)".format(voc))
+        plt.ylabel("Estimated {} frequency (%)".format(voc))
+        # # Hide the right and top spines
+        # ax = plt.gca()
+        # ax.spines['top'].set_visible(False)
+        # ax.spines['right'].set_visible(False)
+        plt.tight_layout()
+        for format in output_formats:
+            plt.savefig("{}/{}/freq_error_scatter_loglog{}.{}".format(args.outdir,
+                                                            voc,
+                                                            args.suffix,
+                                                            format))
+
+    # plot 3d graph
+    for voc in variant_list:
+        plt.figure()
+        ax = plt.axes(projection='3d')
+
+        freq_values = [x[1] for x in err_list if x[0] == voc]
+        err_rate = [x[2] for x in err_list if x[0] == voc]
+        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+
+        ax.plot_trisurf(-np.log10(err_rate), -np.log10(freq_values), err_values, cmap='inferno', edgecolor='none')  
+
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+
+        for format in output_formats:
+            plt.savefig("{}/{}/freq_error_error_3d{}.{}".format(args.outdir, voc, args.suffix, format))
+
+    # flat 3d plot
+    for voc in variant_list:
+        plt.figure()
+
+        freq_values = [x[1] for x in err_list if x[0] == voc]
+        err_rate = [x[2] for x in err_list if x[0] == voc]
+        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+
+        # get space
+        space_y = np.linspace(0, 9, num=10)
+        space_x = np.logspace(-1, 2, num=100)
+        # space_x = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100]
+        # space_x = np.concatenate((np.linspace(0, 1, num=33, endpoint=False), np.linspace(1, 10, num=33, endpoint=False), np.linspace(10, 100, num=33, endpoint=True)))
+        # print(len(space_x), space_x)
+
+        grid_y2, grid_x2 = np.mgrid[0:10,0:100]
+        grid_x, grid_y = np.meshgrid(space_x, space_y)
+
+        zz = griddata((freq_values, err_rate), err_values, (grid_x2, grid_y2), method='nearest')
+        print(zz)
+        plt.plot(freq_values, err_rate, 'k.', ms=1)
+        plt.pcolor(zz)
+
+        plt.xscale('log')
+        # plt.yscale('log')
+        plt.xlim(0.1,100)
+        plt.ylim(0,10)
+
+        plt.xlabel("True VOC abundance (%)")
+        plt.ylabel("Error frequency (%)")
+        plt.colorbar(label="Relative prediction error (%)")
+        
+        for format in output_formats:
+            plt.savefig("{}/{}/freq_error_error_flat{}.{}".format(args.outdir, voc, args.suffix, format))
+
     return
+
+def log_tick_formatter(val, pos=None):
+    return "{:.2e}".format(10**val)
 
 def save_dev(a: int, b: int):
     if a == 0:
