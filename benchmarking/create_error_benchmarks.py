@@ -91,12 +91,13 @@ def main():
             else:
                 quality_shift = 10 * log((1 / sub_err), 10)
             # calculate insertion error rate
-            insRate1 = 0.00009 * ins_err * 10
-            insRate2 = 0.00015 * ins_err * 10
-            # calculate deletion error rate
-            delRate1 = 0.00011 * del_err * 10
-            delRate2 = 0.00023 * del_err * 10
-            # TODO: /\ subject to change /\
+            # insRate1 = 0.00009 * ins_err * 10
+            # insRate2 = 0.00015 * ins_err * 10
+            # # calculate deletion error rate
+            # delRate1 = 0.00011 * del_err * 10
+            # delRate2 = 0.00023 * del_err * 10
+            insRate1, insRate2 = ins_err * 0.0001
+            delRate1, delRate2 = del_err * 0.0001
 
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
