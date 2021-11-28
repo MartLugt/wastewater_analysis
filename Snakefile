@@ -1,5 +1,6 @@
 import json
 import pprint
+import numpy as np
 
 
 configfile: "snek_config.yaml"
@@ -75,8 +76,30 @@ rule create_benchmark_error_compare:
     threads: 12
     params:
         vocs=lambda wildcards, input: ",".join(input.voc),
-        errs=lambda wildcards: ",".join([str(er) for er in config["errors"]]),
-        percs=lambda wildcards: ",".join([str(ab) for ab in config["abundances"]]),
+        errs=lambda wildcards: ",".join([str(er) for er in config["errors"]])
+        if not config["errors_scale_log"]
+        else ",".join(
+            [
+                str(x)
+                for x in np.geomspace(
+                    config["errors_log"][0],
+                    config["errors_log"][1],
+                    config["errors_log"][2],
+                )
+            ]
+        ),
+        percs=lambda wildcards: ",".join([str(ab) for ab in config["abundances"]])
+        if not config["abundances_scale_log"]
+        else ",".join(
+            [
+                str(x)
+                for x in np.geomspace(
+                    config["abundances_log"][0],
+                    config["abundances_log"][1],
+                    config["abundances_log"][2],
+                )
+            ]
+        ),
         spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
         json=lambda wildcards: json.dumps(config),
     run:

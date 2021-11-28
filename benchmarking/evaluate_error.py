@@ -12,6 +12,7 @@ from scipy.interpolate import griddata
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
+superscript = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate predicted frequencies.")
@@ -39,6 +40,8 @@ def main():
     voc_list = args.voc.split(',')
     joint_voc_list = args.joint_eval.split(',')
     output_formats = args.output_format.split(',')
+
+    os.makedirs(args.outdir, exist_ok=True)
 
     # read predictions
     for filename in args.predictions:
@@ -149,6 +152,9 @@ def main():
     err_list_err.sort(key = lambda x : x[2])
     variant_list = sorted(list(variant_set))
 
+    for voc in variant_list:
+        os.makedirs(args.outdir + '/' + voc, exist_ok=True)
+
     # fix color per voc
     colormap = cm.get_cmap('tab10', len(variant_list))
     colors = {voc : colormap((i)/len(variant_list))
@@ -234,8 +240,8 @@ def main():
     # plot true vs estimated frequencies on a scatterplot
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc]
-        est_values = [x[4] for x in err_list if x[0] == voc]
+        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
+        est_values = [x[4] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
         plt.scatter(freq_values, est_values, label=voc, alpha=0.7,
                     color=colors[voc], s=20)
     plt.xscale('log')
@@ -289,6 +295,33 @@ def main():
                                                             args.suffix,
                                                             format))
 
+    # plot 3d scatter graph
+    for voc in variant_list:
+        plt.figure()
+        ax = plt.axes(projection='3d')
+
+        freq_values = [x[1] for x in err_list if x[0] == voc]
+        err_rate = [x[2] for x in err_list if x[0] == voc]
+        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+
+        X0 = np.array(err_rate)
+        X0[X0 == 0] = 0.1
+        X = np.log10(X0)
+
+        Y0 = np.array(freq_values)
+        Y0[Y0 == 0] = 0.1
+        Y = np.log10(Y0)
+
+        ax.scatter(X, Y, err_values, c=err_values, cmap='viridis', depthshade=False)
+        ax.view_init(azim=135)
+
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+
+        for format in output_formats:
+            plt.savefig("{}/{}/freq_error_error_scatter_3d{}.{}".format(args.outdir, voc, args.suffix, format))
+
+
     # plot 3d graph
     for voc in variant_list:
         plt.figure()
@@ -298,53 +331,102 @@ def main():
         err_rate = [x[2] for x in err_list if x[0] == voc]
         err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
 
-        ax.plot_trisurf(-np.log10(err_rate), -np.log10(freq_values), err_values, cmap='inferno', edgecolor='none')  
+        X0 = np.array(err_rate)
+        X0[X0 == 0] = 0.1
+        X = np.log10(X0)
+
+        Y0 = np.array(freq_values)
+        Y0[Y0 == 0] = 0.1
+        Y = np.log10(Y0)
+
+        Z0 = np.array(err_values)
+        Z0[Z0 == 0] = 0.1
+        Z = np.log10(Z0)
+        
+        # ax.plot_trisurf(err_rate, freq_values, err_values)
+        ax.plot_trisurf(X, Y, err_values, cmap='viridis', edgecolor='none')
+        ax.view_init(azim=135)
 
         ax.xaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+        # ax.xaxis.set_major_locator(mticker.MaxNLocater(integer=True))
+
+        # ax.set_xticks([-1,0,1,2,3])
 
         for format in output_formats:
             plt.savefig("{}/{}/freq_error_error_3d{}.{}".format(args.outdir, voc, args.suffix, format))
 
     # flat 3d plot
-    for voc in variant_list:
-        plt.figure()
+    # for voc in variant_list:
+    #     plt.figure()
 
-        freq_values = [x[1] for x in err_list if x[0] == voc]
-        err_rate = [x[2] for x in err_list if x[0] == voc]
-        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+    #     freq_values = [x[1] for x in err_list if x[0] == voc]
+    #     err_rate = [x[2] for x in err_list if x[0] == voc]
+    #     err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
 
-        # get space
-        space_y = np.linspace(0, 9, num=10)
-        space_x = np.logspace(-1, 2, num=100)
-        # space_x = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100]
-        # space_x = np.concatenate((np.linspace(0, 1, num=33, endpoint=False), np.linspace(1, 10, num=33, endpoint=False), np.linspace(10, 100, num=33, endpoint=True)))
-        # print(len(space_x), space_x)
+    #     # get space
+    #     space_y = np.linspace(0, 9, num=10)
+    #     space_x = np.logspace(-1, 2, num=100)
+    #     # space_x = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100]
+    #     # space_x = np.concatenate((np.linspace(0, 1, num=33, endpoint=False), np.linspace(1, 10, num=33, endpoint=False), np.linspace(10, 100, num=33, endpoint=True)))
+    #     # print(len(space_x), space_x)
 
-        grid_y2, grid_x2 = np.mgrid[0:10,0:100]
-        grid_x, grid_y = np.meshgrid(space_x, space_y)
+    #     grid_y2, grid_x2 = np.mgrid[0:10,0:100]
+    #     grid_x, grid_y = np.meshgrid(space_x, space_y)
 
-        zz = griddata((freq_values, err_rate), err_values, (grid_x2, grid_y2), method='nearest')
-        print(zz)
-        plt.plot(freq_values, err_rate, 'k.', ms=1)
-        plt.pcolor(zz)
+    #     zz = griddata((freq_values, err_rate), err_values, (grid_x2, grid_y2), method='nearest')
+    #     # print(zz)
+    #     plt.plot(freq_values, err_rate, 'k.', ms=1)
+    #     plt.pcolor(zz)
 
-        plt.xscale('log')
-        # plt.yscale('log')
-        plt.xlim(0.1,100)
-        plt.ylim(0,10)
+    #     plt.xscale('log')
+    #     # plt.yscale('log')
+    #     plt.xlim(0.1,100)
+    #     plt.ylim(0,10)
 
-        plt.xlabel("True VOC abundance (%)")
-        plt.ylabel("Error frequency (%)")
-        plt.colorbar(label="Relative prediction error (%)")
+    #     plt.xlabel("True VOC abundance (%)")
+    #     plt.ylabel("Error frequency (%)")
+    #     plt.colorbar(label="Relative prediction error (%)")
         
-        for format in output_formats:
-            plt.savefig("{}/{}/freq_error_error_flat{}.{}".format(args.outdir, voc, args.suffix, format))
+    #     for format in output_formats:
+    #         plt.savefig("{}/{}/freq_error_error_flat{}.{}".format(args.outdir, voc, args.suffix, format))
 
+    # for voc in variant_list:
+    #     freq_values = [x[1] for x in err_list_err if x[0] == voc]
+    #     err_rate = [x[2] for x in err_list_err if x[0] == voc]
+    #     err_values = [x[3]/x[1]*100 for x in err_list_err if x[0] == voc]
+
+    #     l1 = [0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0]
+    #     l2 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.0,100.0]
+    #     print(len(l1), len(l2))
+    #     l3 = [(x, y) for x in l2 for y in l1]
+    #     print(len(l3))
+    #     _, f, e, _, _ = zip(*err_list_err)
+
+    #     l4 = [x for x in l3 if x not in zip(f, e)]
+    #     print(l4, "|\n", list(zip(f, e)))
+
+    #     # print(err_list_err)
+    #     # print(len(list(zip(f, e))), list(zip(f, e)))
+
+    #     # print(len(err_list_err), err_list_err)
+    #     Z = np.array(err_values).reshape(len(set(err_rate)), len(set(freq_values)))
+    #     x = freq_values
+    #     y = err_rate
+
+    #     fig, zx = plt.subplots()
+    #     zx.pcolormesh(x, y, Z, shading='flat', vmin=min(Z), vmax=max(Z))
+    #     X, Y = np.meshgrid(x, y)
+    #     zx.plot(X.flat, Y.flat, 'o', color='m')
+
+    #     for format in output_formats:
+    #         plt.savefig("{}/{}/flat_test{}.{}".format(args.outdir, voc, args.suffix, format))
+    # plt.show()
     return
 
 def log_tick_formatter(val, pos=None):
-    return "{:.2e}".format(10**val)
+    return "10" + str(val).translate(superscript)
+    # return "{:.0e}".format(10**val)
 
 def save_dev(a: int, b: int):
     if a == 0:

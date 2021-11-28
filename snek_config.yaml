@@ -4,39 +4,23 @@ min_ab: 0.1
 tot_cov: 1000
 spike_only: true
 
-bootstraps: 10
+bootstraps: 12
 
-vocs: ["B.1.1.7"]
-lineages: ["1008906"]
-# vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
-# lineages: ["1008906", "1001460", "1924762", "1194849"]
+# vocs: ["B.1.1.7"]
+# lineages: ["1008906"]
+vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
+lineages: ["1008906", "1001460", "1924762", "1194849"]
 
 plot_exts: ["png"]
 
-errors:
-  [
-    0,
-    0.5,
-    1,
-    1.5,
-    2,
-    2.5,
-    3,
-    3.5,
-    4,
-    4.5,
-    5,
-    5.5,
-    6,
-    6.5,
-    7,
-    7.5,
-    8,
-    8.5,
-    9,
-    9.5,
-    10,
-  ]
+errors_scale_log: True
+errors_log: [0.001, 100, 50]
+
+errors: # %
+  [0.001, 0.01, 0.1, 1, 10]
+
+abundances_scale_log: True
+abundances_log: [0.1, 100, 30]
 
 abundances:
   [
