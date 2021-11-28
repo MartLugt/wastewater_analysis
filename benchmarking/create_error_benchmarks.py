@@ -96,8 +96,8 @@ def main():
             # # calculate deletion error rate
             # delRate1 = 0.00011 * del_err * 10
             # delRate2 = 0.00023 * del_err * 10
-            insRate1, insRate2 = ins_err * 0.0001
-            delRate1, delRate2 = del_err * 0.0001
+            insRate1 = insRate2 = ins_err * 0.0001
+            delRate1 = delRate2 = del_err * 0.0001
 
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
