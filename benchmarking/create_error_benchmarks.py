@@ -5,8 +5,7 @@ import os
 import argparse
 import subprocess
 import pandas as pd
-from random import randint
-from math import log, floor, log10
+from math import floor, log10
 
 from select_samples import filter_fasta, read_metadata
 
@@ -86,11 +85,13 @@ def main():
             ins_err = float(err_freq) if args.ins_error else 0
             del_err = float(err_freq) if args.del_error else 0
 
-            # sub error rate -> quality shift
+            # quality shift 0 = 0.112 %
+            # % = default * 1/(10^(qs/10))
+
             if sub_err == 0:
                 quality_shift = 93 # Max positive quality shift.
             else:
-                quality_shift = 10 * log((1 / sub_err), 10)
+                quality_shift = 10 * log10((0.112 / sub_err))
             # calculate insertion error rate
             # insRate1 = 0.00009 * ins_err * 10
             # insRate2 = 0.00015 * ins_err * 10
