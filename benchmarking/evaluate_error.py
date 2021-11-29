@@ -161,7 +161,7 @@ def main():
         os.makedirs(args.outdir + '/' + voc, exist_ok=True)
 
     # fix color per voc
-    colormap = cm.get_cmap('tab10', len(variant_list))
+    colormap = cm.get_cmap('Set1', len(variant_list))
     colors = {voc : colormap((i)/len(variant_list))
                 for i, voc in enumerate(variant_list)}
 
@@ -206,9 +206,10 @@ def main():
     plot_single_err_val = min(unique_err_vals, key=lambda x:abs(x-args.plot_err_val))
     plot_single_frq_val = min(unique_freq_vals, key=lambda x:abs(x-args.plot_ab_val))
 
-    # print(plot_single_frq_val, plot_single_err_val)
 
     plt.rcParams.update({'font.size': 12}) # increase font size
+
+    # abundance to relative error
     plt.figure()
     for voc in variant_list:
         freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == plot_single_err_val]
@@ -236,9 +237,8 @@ def main():
                                                               args.suffix,
                                                               format))
 
-    # bruh = [(x[1], x[3], x[2]) for x in err_list_err if x[0] == "B.1.617.2" and x[1] == plot_single_err_val]
-    # print(bruh)
 
+    # error to relative error
     plt.figure()
     for voc in variant_list:
         err_freq = [x[2] for x in err_list_err if x[0] == voc and x[1] == plot_single_frq_val]
@@ -292,11 +292,10 @@ def main():
     # plot scatter with error gradient for every voc
     for voc in variant_list:
         plt.figure()
+
         freq_values = [x[1] for x in err_list_err if x[0] == voc]
         est_values = [x[4] for x in err_list_err if x[0] == voc]
         err_rate = [x[2] for x in err_list_err if x[0] == voc]
-        ## normalize error rate
-        # err_rate_normalized = [(x - min(err_rate)) / (max(err_rate) - min(err_rate)) for x in err_rate]
 
         plt.scatter(freq_values, est_values, alpha=0.7, 
                     c=err_rate, s=20, cmap='viridis', norm=matplotlib.colors.LogNorm())
@@ -310,6 +309,7 @@ def main():
         plt.grid(which="both", alpha=0.2)
         plt.xlabel("True {} frequency (%)".format(voc))
         plt.ylabel("Estimated {} frequency (%)".format(voc))
+        # plt.title(voc)
         # # Hide the right and top spines
         # ax = plt.gca()
         # ax.spines['top'].set_visible(False)
@@ -321,7 +321,7 @@ def main():
                                                             args.suffix,
                                                             format))
 
-    plt.show()
+    # plt.show()
 
     # plot 3d scatter graph
     for voc in variant_list:
@@ -331,6 +331,11 @@ def main():
         freq_values = [x[1] for x in err_list if x[0] == voc]
         err_rate = [x[2] for x in err_list if x[0] == voc]
         err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+
+        # # cap relative error to 100
+        # for i, val in enumerate(err_values):
+        #     if val > 100:
+        #         err_values[i] = 100
 
         X0 = np.array(err_rate)
         X0[X0 == 0] = 0.1
@@ -350,6 +355,10 @@ def main():
         ax.set_ylabel("True {} frequency (%)".format(voc))
         ax.set_zlabel("Relative prediction error (%)")
 
+        ax.set_zlim(0,100)
+
+        # plt.title(voc)
+
         # plt.tight_layout()
         for format in output_formats:
             plt.savefig("{}/{}/freq_error_error_scatter_3d{}.{}".format(args.outdir, voc, args.suffix, format))
@@ -363,6 +372,11 @@ def main():
         freq_values = [x[1] for x in err_list if x[0] == voc]
         err_rate = [x[2] for x in err_list if x[0] == voc]
         err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc]
+
+        # # cap relative error to 100
+        # for i, val in enumerate(err_values):
+        #     if val > 100:
+        #         err_values[i] = 100
 
         X0 = np.array(err_rate)
         X0[X0 == 0] = 0.1
@@ -387,6 +401,10 @@ def main():
         ax.set_xlabel("Induced error rate (%)")
         ax.set_ylabel("True {} frequency (%)".format(voc))
         ax.set_zlabel("Relative prediction error (%)")
+
+        ax.set_zlim(0,100)
+
+        # plt.title(voc)
 
         # ax.set_xticks([-1,0,1,2,3])
 
@@ -459,7 +477,7 @@ def main():
 
     #     for format in output_formats:
     #         plt.savefig("{}/{}/flat_test{}.{}".format(args.outdir, voc, args.suffix, format))
-    # plt.show()
+    plt.show()
     return
 
 def log_tick_formatter(val, pos=None):

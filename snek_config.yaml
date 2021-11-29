@@ -6,21 +6,21 @@ spike_only: true
 
 bootstraps: 12
 
-# vocs: ["B.1.1.7"]
-# lineages: ["1008906"]
-vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
-lineages: ["1008906", "1001460", "1924762", "1194849"]
+vocs: ["B.1.1.7", "P.1"]
+lineages: ["1008906", "1194849"]
+# vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
+# lineages: ["1008906", "1001460", "1924762", "1194849"]
 
 plot_exts: ["png"]
 
 errors_scale_log: True
-errors_log: [0.001, 100, 24]
+errors_log: [0.001, 100, 12]
 
 errors: # %
   [0.001, 0.01, 0.1, 1, 10]
 
 abundances_scale_log: True
-abundances_log: [0.1, 100, 24]
+abundances_log: [0.1, 100, 12]
 
 abundances:
   [
