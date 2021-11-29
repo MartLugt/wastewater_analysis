@@ -148,3 +148,4 @@ benchmarks/
 reference_sets/
 .snakemake/
 genome_data/
+.vscode

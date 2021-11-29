@@ -14,13 +14,13 @@ lineages: ["1008906", "1001460", "1924762", "1194849"]
 plot_exts: ["png"]
 
 errors_scale_log: True
-errors_log: [0.001, 100, 50]
+errors_log: [0.001, 100, 24]
 
 errors: # %
   [0.001, 0.01, 0.1, 1, 10]
 
 abundances_scale_log: True
-abundances_log: [0.1, 100, 30]
+abundances_log: [0.1, 100, 24]
 
 abundances:
   [

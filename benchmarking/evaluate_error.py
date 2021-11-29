@@ -4,6 +4,7 @@ import sys
 import os
 import copy
 import argparse
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mticker
@@ -11,8 +12,9 @@ from mpl_toolkits import mplot3d
 from scipy.interpolate import griddata
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from math import log10, floor
 
-superscript = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+superscript = str.maketrans("-0123456789.", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹·")
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate predicted frequencies.")
@@ -23,8 +25,8 @@ def main():
     parser.add_argument('-v,--verbose', dest='verbose', action='store_true')
     parser.add_argument('--min_err', dest='min_err', default=0, type=float, help="minimal error (any samples with true error below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--min_ab', dest='min_ab', default=0, type=float, help="minimal abundance (any samples with true abundance below this threshold are skipped; any predictions below this threshold are considered absent)")
-    parser.add_argument('--plot_error_value', dest='plot_err_val', default=1, type=float, help="error value for plots in which the error is not plotted. Default: 1")
-    parser.add_argument('--plot_abundance_value', dest='plot_ab_val', default=1, type=float, help="abundance value for plots in which the abundance is not plotted. Default: 1")
+    parser.add_argument('--plot_error_value', dest='plot_err_val', default=1, type=float, help="error value for plots in which the error is not plotted. (Value is set to closest datapoint). Default: 1")
+    parser.add_argument('--plot_abundance_value', dest='plot_ab_val', default=1, type=float, help="abundance value for plots in which the abundance is not plotted. (Value is set to closest datapoint). Default: 1")
     parser.add_argument('--no_plots', action='store_true')
     parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="DOESNT WORK | comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
     parser.add_argument('--joint_average', action='store_true', help="DOESNT WORK")
@@ -42,6 +44,7 @@ def main():
     output_formats = args.output_format.split(',')
 
     os.makedirs(args.outdir, exist_ok=True)
+    # input()
 
     # read predictions
     for filename in args.predictions:
@@ -65,8 +68,10 @@ def main():
                     continue
                 [variant, tpm, ab, corrected_ab] = line.rstrip('\n').split('\t')
                 if variant not in voc_list:
+                    print("nah")
                     continue
                 ab = float(ab)
+                # Remove ↓ ?
                 if ab < args.min_ab:
                     continue
                 abs_err = abs(ab - voc_freq)
@@ -190,12 +195,27 @@ def main():
     #         variant_list.append(joint_voc_name)
     #         colors[joint_voc_name] = colors[joint_voc_list[0]]
 
-    plt.rcParams.update({'font.size': 14}) # increase font size
+    _, f, e, _, _ = zip(*err_list_err)
+    unique_err_vals = list(set(e))
+    unique_freq_vals = list(set(f))
+
+    # print(unique_freq_vals)
+    # print("\n\n\n")
+    # print(unique_err_vals)
+
+    plot_single_err_val = min(unique_err_vals, key=lambda x:abs(x-args.plot_err_val))
+    plot_single_frq_val = min(unique_freq_vals, key=lambda x:abs(x-args.plot_ab_val))
+
+    # print(plot_single_frq_val, plot_single_err_val)
+
+    plt.rcParams.update({'font.size': 12}) # increase font size
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
-        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
+        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == plot_single_err_val]
+        err_values = [x[3]/x[1]*100 for x in err_list if x[0] == voc and x[2] == plot_single_err_val]
         plt.plot(freq_values, err_values, label=voc, color=colors[voc])
+        if (freq_values[0] > args.min_ab):
+            plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
@@ -216,11 +236,16 @@ def main():
                                                               args.suffix,
                                                               format))
 
+    # bruh = [(x[1], x[3], x[2]) for x in err_list_err if x[0] == "B.1.617.2" and x[1] == plot_single_err_val]
+    # print(bruh)
+
     plt.figure()
     for voc in variant_list:
-        err_freq = [x[2] for x in err_list_err if x[0] == voc and x[1] == args.plot_ab_val]
-        err_values = [x[3]/x[1]*100 for x in err_list_err if x[0] == voc and x[1] == args.plot_ab_val]
+        err_freq = [x[2] for x in err_list_err if x[0] == voc and x[1] == plot_single_frq_val]
+        err_values = [x[3]/x[1]*100 for x in err_list_err if x[0] == voc and x[1] == plot_single_frq_val]
         plt.plot(err_freq, err_values, label=voc, color=colors[voc])
+        if (err_freq[-1] < max(unique_err_vals)):
+            plt.plot(err_freq[-1], err_values[-1], marker="s", color=colors[voc], markersize=6)
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
@@ -240,8 +265,8 @@ def main():
     # plot true vs estimated frequencies on a scatterplot
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
-        est_values = [x[4] for x in err_list if x[0] == voc and x[2] == args.plot_err_val]
+        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] == plot_single_err_val]
+        est_values = [x[4] for x in err_list if x[0] == voc and x[2] == plot_single_err_val]
         plt.scatter(freq_values, est_values, label=voc, alpha=0.7,
                     color=colors[voc], s=20)
     plt.xscale('log')
@@ -262,6 +287,7 @@ def main():
         plt.savefig("{}/freq_scatter_loglog{}.{}".format(args.outdir,
                                                          args.suffix,
                                                          format))
+    
 
     # plot scatter with error gradient for every voc
     for voc in variant_list:
@@ -273,7 +299,7 @@ def main():
         # err_rate_normalized = [(x - min(err_rate)) / (max(err_rate) - min(err_rate)) for x in err_rate]
 
         plt.scatter(freq_values, est_values, alpha=0.7, 
-                    c=err_rate, s=20, cmap='viridis')
+                    c=err_rate, s=20, cmap='viridis', norm=matplotlib.colors.LogNorm())
         plt.xscale('log')
         plt.yscale('log')
         plt.xlim(0.07, 150)
@@ -294,6 +320,8 @@ def main():
                                                             voc,
                                                             args.suffix,
                                                             format))
+
+    plt.show()
 
     # plot 3d scatter graph
     for voc in variant_list:
@@ -318,6 +346,11 @@ def main():
         ax.xaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
 
+        ax.set_xlabel("Induced error rate (%)")
+        ax.set_ylabel("True {} frequency (%)".format(voc))
+        ax.set_zlabel("Relative prediction error (%)")
+
+        # plt.tight_layout()
         for format in output_formats:
             plt.savefig("{}/{}/freq_error_error_scatter_3d{}.{}".format(args.outdir, voc, args.suffix, format))
 
@@ -351,8 +384,13 @@ def main():
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
         # ax.xaxis.set_major_locator(mticker.MaxNLocater(integer=True))
 
+        ax.set_xlabel("Induced error rate (%)")
+        ax.set_ylabel("True {} frequency (%)".format(voc))
+        ax.set_zlabel("Relative prediction error (%)")
+
         # ax.set_xticks([-1,0,1,2,3])
 
+        # plt.tight_layout()
         for format in output_formats:
             plt.savefig("{}/{}/freq_error_error_3d{}.{}".format(args.outdir, voc, args.suffix, format))
 
@@ -425,8 +463,11 @@ def main():
     return
 
 def log_tick_formatter(val, pos=None):
-    return "10" + str(val).translate(superscript)
-    # return "{:.0e}".format(10**val)
+    return "10" + str(round_sig(val, 1)).translate(superscript)
+
+def round_sig(x, sig=2):
+    if x == 0: return x
+    return round(x, sig-int(floor(log10(abs(x))))-1)
 
 def save_dev(a: int, b: int):
     if a == 0:

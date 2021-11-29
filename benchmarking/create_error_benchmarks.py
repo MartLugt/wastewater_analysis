@@ -6,7 +6,7 @@ import argparse
 import subprocess
 import pandas as pd
 from random import randint
-from math import log
+from math import log, floor, log10
 
 from select_samples import filter_fasta, read_metadata
 
@@ -80,6 +80,7 @@ def main():
     for voc_freq in VOC_frequencies:
         VOC_cov = round(total_cov * float(voc_freq)/100, 2)
         background_cov = round((total_cov - VOC_cov) / len(selection_df.index), 2)
+        voc_freq = str(round(float(voc_freq), 2))
         for err_freq in err_frequencies:
             sub_err = float(err_freq) if args.sub_error else 0
             ins_err = float(err_freq) if args.ins_error else 0
@@ -97,8 +98,8 @@ def main():
             # delRate1 = 0.00011 * del_err * 10
             # delRate2 = 0.00023 * del_err * 10
             # Get error rate from percentage
-            insRate1 = insRate2 = ins_err / 100 #* 0.0001
-            delRate1 = delRate2 = del_err / 100 #* 0.0001
+            insRate1 = insRate2 = round_sig(ins_err / 100, 3) #* 0.0001
+            delRate1 = delRate2 = round_sig(del_err / 100, 3) #* 0.0001
 
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
@@ -163,6 +164,9 @@ def select_benchmark_genomes(df, state, date, exclude_list):
     # for key, item in grouped_mass_df:
     #     print(key, grouped_mass_df.get_group(key), "\n\n")
     return selection_df
+
+def round_sig(x, sig=2):
+    return round(x, sig-int(floor(log10(abs(x))))-1)
 
 
 if __name__ == "__main__":

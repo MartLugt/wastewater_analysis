@@ -1,6 +1,7 @@
 import json
 import pprint
 import numpy as np
+from math import log10, floor
 
 
 configfile: "snek_config.yaml"
@@ -9,8 +10,36 @@ configfile: "snek_config.yaml"
 pangolin = [x + "_EPI_ISL_" + y for x, y in zip(config["vocs"], config["lineages"])]
 
 
-# dataset should be in format:
-# [datasetname]_se_ie_de
+def round_sig(x, sig=2):
+    return round(x, sig - int(floor(log10(abs(x)))) - 1)
+
+
+abus = [
+    round(x, 2)
+    for x in (
+        config["abundances"]
+        if not config["abundances_scale_log"]
+        else np.geomspace(
+            config["abundances_log"][0],
+            config["abundances_log"][1],
+            config["abundances_log"][2],
+        )
+    )
+]
+errors = [
+    round_sig(x, 3)
+    for x in (
+        config["errors"]
+        if not config["errors_scale_log"]
+        else np.geomspace(
+            config["errors_log"][1],
+            config["errors_log"][0],
+            config["errors_log"][2],
+        )
+    )
+]
+
+
 wildcard_constraints:
     dataset="[^/]+",
     format="[^_]+",
@@ -63,43 +92,21 @@ rule create_benchmark_error_compare:
         expand(
             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
         ),
         expand(
             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
         ),
         snek=touch("benchmarks/{dataset}_{format}/snek"),
     threads: 12
     params:
         vocs=lambda wildcards, input: ",".join(input.voc),
-        errs=lambda wildcards: ",".join([str(er) for er in config["errors"]])
-        if not config["errors_scale_log"]
-        else ",".join(
-            [
-                str(x)
-                for x in np.geomspace(
-                    config["errors_log"][0],
-                    config["errors_log"][1],
-                    config["errors_log"][2],
-                )
-            ]
-        ),
-        percs=lambda wildcards: ",".join([str(ab) for ab in config["abundances"]])
-        if not config["abundances_scale_log"]
-        else ",".join(
-            [
-                str(x)
-                for x in np.geomspace(
-                    config["abundances_log"][0],
-                    config["abundances_log"][1],
-                    config["abundances_log"][2],
-                )
-            ]
-        ),
+        errs=lambda wildcards: ",".join([str(er) for er in errors]),
+        percs=lambda wildcards: ",".join([str(ab) for ab in abus]),
         spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
         json=lambda wildcards: json.dumps(config),
     run:
@@ -172,21 +179,21 @@ rule run_kallisto_error_compare:
         wwsim1=expand(
             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
         ),
         wwsim2=expand(
             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
         ),
     output:
         expand(
             "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{er}/predictions_m{min_ab}.tsv",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
             min_ab=config["min_ab"],
         ),
         dir=directory("benchmarks/{dataset}_{format}/out"),
@@ -197,8 +204,8 @@ rule run_kallisto_error_compare:
         outdir = output.dir
         shell("mkdir -p {outdir}")
         for voc in pangolin:
-            for ab in config["abundances"]:
-                for er in config["errors"]:
+            for ab in abus:
+                for er in errors:
                     shell(
                         "kallisto quant -t {threads} -b {config[bootstraps]} "
                         "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{er} "
@@ -248,8 +255,8 @@ rule create_figs_compare_error:
         expand(
             "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{er}/predictions_m{min_ab}.tsv",
             voc=pangolin,
-            ab=config["abundances"],
-            er=config["errors"],
+            ab=abus,
+            er=errors,
             min_ab=config["min_ab"],
         ),
     output:
