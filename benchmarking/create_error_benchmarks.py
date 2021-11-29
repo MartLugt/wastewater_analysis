@@ -87,26 +87,16 @@ def main():
 
             # quality shift 0 = 0.112 %
             # % = default * 1/(10^(qs/10))
-
             if sub_err == 0:
                 quality_shift = 93 # Max positive quality shift.
             else:
                 quality_shift = 10 * log10((0.112 / sub_err))
-            # calculate insertion error rate
-            # insRate1 = 0.00009 * ins_err * 10
-            # insRate2 = 0.00015 * ins_err * 10
-            # # calculate deletion error rate
-            # delRate1 = 0.00011 * del_err * 10
-            # delRate2 = 0.00023 * del_err * 10
-            # Get error rate from percentage
-            insRate1 = insRate2 = round_sig(ins_err / 100, 3) #* 0.0001
-            delRate1 = delRate2 = round_sig(del_err / 100, 3) #* 0.0001
+            insRate1 = insRate2 = round_sig(ins_err / 100, 3) 
+            delRate1 = delRate2 = round_sig(del_err / 100, 3) 
 
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
             print("Error rate: {} sub, {} ins, {} del ".format(sub_err, ins_err, del_err))
-            # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/background_ab{1}_s{8}_i{9}_d{10}_ -m 250 -s 10 -qs {3} -qs2 {3} -ir {4} -ir2 {5} -dr {6} -dr2 {7}"
-            #     .format(fasta_selection, background_cov, args.outdir, quality_shift, insRate1, insRate2, delRate1, delRate2, sub_err, ins_err, del_err), shell=True)
             subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/background_ab{1}_er{8}_ -m 250 -s 10 -qs {3} -qs2 {3} -ir {4} -ir2 {5} -dr {6} -dr2 {7}"
                 .format(fasta_selection, background_cov, args.outdir, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
             # simulate reads for VOC, merge and shuffle
@@ -118,16 +108,6 @@ def main():
                     voc_fasta = filename
                 print("Simulating reads from {} at {}x coverage".format(VOC_name, VOC_cov))
                 print("Error rate: {} sub, {} ins, {} del ".format(sub_err, ins_err, del_err))
-                # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/{3}_ab{1}_s{9}_i{10}_d{11}_ -m 250 -s 10 -qs {4} -qs2 {4} -ir {5} -ir2 {6} -dr {7} -dr2 {8}"
-                #     .format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift, insRate1, insRate2, delRate1, delRate2, sub_err, ins_err, del_err), shell=True)
-                # print("\nMerging fastqs...")
-                # subprocess.check_call("cat {0}/background_ab{5}_s{2}_i{3}_d{4}_1.fq {0}/{1}_ab{6}_s{2}_i{3}_d{4}_1.fq > {0}/tmp1.fq"
-                #     .format(args.outdir, VOC_name, sub_err, ins_err, del_err, background_cov, VOC_cov), shell=True)
-                # subprocess.check_call("cat {0}/background_ab{5}_s{2}_i{3}_d{4}_2.fq {0}/{1}_ab{6}_s{2}_i{3}_d{4}_2.fq > {0}/tmp2.fq"
-                #     .format(args.outdir, VOC_name, sub_err, ins_err, del_err, background_cov, VOC_cov), shell=True)
-                # print("Shuffling reads...")
-                # subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{5}_s{2}_i{3}_d{4}_1.fastq out2={0}/wwsim_{1}_ab{5}_s{2}_i{3}_d{4}_2.fastq overwrite=t fastawrap=0"
-                #     .format(args.outdir, VOC_name, sub_err, ins_err, del_err, VOC_cov), shell=True)
                 subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/{3}_ab{1}_er{9}_ -m 250 -s 10 -qs {4} -qs2 {4} -ir {5} -ir2 {6} -dr {7} -dr2 {8}"
                     .format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
                 print("\nMerging fastqs...")
@@ -151,19 +131,7 @@ def select_benchmark_genomes(df, state, date, exclude_list):
     print("\nLineage counts for {} on {}:".format(state, date))
     print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
-    selection_df = selection_df.loc[
-                        ~selection_df["Pango lineage"].isin(exclude_list)]
-    # # show number of samples per date
-    # samples_per_date = state_df["date"].value_counts().sort_index()
-    # print("Samples per date:")
-    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-    #     print(samples_per_date)
-
-    # # show lineages per date
-    # grouped_mass_df = state_df.groupby(["date"])
-    # print(grouped_mass_df.get_group(date)["strain", "pangolin_lineage"])
-    # for key, item in grouped_mass_df:
-    #     print(key, grouped_mass_df.get_group(key), "\n\n")
+    selection_df = selection_df.loc[~selection_df["Pango lineage"].isin(exclude_list)]
     return selection_df
 
 def round_sig(x, sig=2):
