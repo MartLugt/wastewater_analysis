@@ -77,13 +77,17 @@ def main():
     for voc_freq in VOC_frequencies:
         VOC_cov = round(total_cov * float(voc_freq)/100, 2)
         background_cov = round((total_cov - VOC_cov) / len(selection_df.index), 2)
-        voc_freq = str(round(float(voc_freq), 2))
+        voc_freq = str(round(float(voc_freq), 3))
         for chim_freq in chim_frequencies:
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
             print("Chimeric read rate: {}%".format(chim_freq))
-            subprocess.check_call("badread simulate --reference {0} --length 150,0 --quantity {1} --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 95,100,4 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/background_ab{1}_ch{2}.fq"
-                .format(fasta_selection, background_cov, chim_freq, args.outdir))
+            if background_cov == 0:
+                print("Not simulating, coverage is 0")
+                subprocess.check_call("touch {2}/background_ab{0}_ch{1}.fq".format(background_cov, chim_freq, args.outdir), shell=True)
+            else:
+                subprocess.check_call("badread simulate --reference {0} --length 150,1 --quantity {1}x --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 98,100,1 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/background_ab{1}_ch{2}.fq"
+                    .format(fasta_selection, background_cov, chim_freq, args.outdir), shell=True)
             # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/background_ab{1}_er{8}_ -m 250 -s 10 -qs {3} -qs2 {3} -ir {4} -ir2 {5} -dr {6} -dr2 {7}"
                 # .format(fasta_selection, background_cov, args.outdir, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
             # simulate reads for VOC, merge and shuffle
@@ -95,22 +99,24 @@ def main():
                     voc_fasta = filename
                 print("Simulating reads from {} at {}x coverage".format(VOC_name, VOC_cov))
                 print("Chimeric read rate: {}%".format(chim_freq))
-                subprocess.check_call("badread simulate --reference {0} --length 150,0 --quantity {1} --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 95,100,4 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/{4}_ab{1}_ch{2}.fq"
-                    .format(voc_fasta, VOC_cov, chim_freq, args.outdir, VOC_name))
+                subprocess.check_call("badread simulate --reference {0} --length 150,1 --quantity {1}x --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 98,100,1 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/{4}_ab{1}_ch{2}.fq"
+                    .format(voc_fasta, VOC_cov, chim_freq, args.outdir, VOC_name), shell=True)
                 # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/{3}_ab{1}_er{9}_ -m 250 -s 10 -qs {4} -qs2 {4} -ir {5} -ir2 {6} -dr {7} -dr2 {8}"
                 #     .format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
                 print("\nMerging fastqs...")
-                subprocess.check_call("cat {0}/background_ab{3}_ch{2}_1.fq {0}/{1}_ab{4}_er{2}_1.fq > {0}/tmp1.fq"
+                subprocess.check_call("cat {0}/background_ab{3}_ch{2}.fq {0}/{1}_ab{4}_ch{2}.fq > {0}/tmp.fq"
                     .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
-                subprocess.check_call("cat {0}/background_ab{3}_ch{2}_2.fq {0}/{1}_ab{4}_er{2}_2.fq > {0}/tmp2.fq"
-                    .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
+                # subprocess.check_call("cat {0}/background_ab{3}_ch{2}_2.fq {0}/{1}_ab{4}_er{2}_2.fq > {0}/tmp2.fq"
+                #     .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
                 print("Shuffling reads...")
-                subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_ch{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_ch{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality"
+                subprocess.check_call("shuffle.sh in={0}/tmp.fq out={0}/wwsim_{1}_ab{3}_ch{2}.fastq overwrite=t fastawrap=0 ignorebadquality"
                     .format(args.outdir, VOC_name, chim_freq, voc_freq), shell=True)
+                # subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_ch{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_ch{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality"
+                #     .format(args.outdir, VOC_name, chim_freq, voc_freq), shell=True)
             print("\nBenchmarks with a chimeric read frequency of {}% are ready!\n\n".format(chim_freq))
     # clean up temporary files
-    os.remove("{}/tmp1.fq".format(args.outdir))
-    os.remove("{}/tmp2.fq".format(args.outdir))
+    os.remove("{}/tmp.fq".format(args.outdir))
+    # os.remove("{}/tmp2.fq".format(args.outdir))
     return
 
 def select_benchmark_genomes(df, state, date, exclude_list):

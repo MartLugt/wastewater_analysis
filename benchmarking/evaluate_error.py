@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mticker
 from mpl_toolkits import mplot3d
-from scipy.interpolate import griddata
 from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from math import log10, floor
 
 superscript = str.maketrans("-0123456789.", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹·")
@@ -31,6 +29,7 @@ def main():
     parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="DOESNT WORK | comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
     parser.add_argument('--joint_average', action='store_true', help="DOESNT WORK")
     parser.add_argument('--output_format', dest='output_format', default='png', help="comma-separated list of desired output formats")
+    parser.add_argument('--chimeric', action="store_true", help="indicate dataset with chimeric reads")
     args = parser.parse_args()
 
     false_pos_count = 0
@@ -44,13 +43,12 @@ def main():
     output_formats = args.output_format.split(',')
 
     os.makedirs(args.outdir, exist_ok=True)
-    # input()
 
     # read predictions
     for filename in args.predictions:
         dir_name = filename.split('/')[-2]
         voc_name = dir_name.split('_')[0]
-        err_freq = float(dir_name.split('_')[-1].lstrip('er'))
+        err_freq = float(dir_name.split('_')[-1].lstrip('er' if not args.chimeric else 'ch'))
         voc_freq = float(dir_name.split('_')[-2].lstrip('ab'))
         if voc_name not in voc_list:
             continue
