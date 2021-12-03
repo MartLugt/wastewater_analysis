@@ -215,55 +215,87 @@ rule run_kallisto:
                 )
 
 
-rule run_kallisto_error_compare:
+rule run_kallisto_single_job:
     input:
         idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
-        wwsim1=expand(
-            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
-            voc=pangolin,
-            ab=abus,
-            er=errors,
-        ),
-        wwsim2=expand(
-            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
-            voc=pangolin,
-            ab=abus,
-            er=errors,
-        ),
+        wwsim1="benchmarks/{dataset}_{format}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
+        wwsim2="benchmarks/{dataset}_{format}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
     output:
         expand(
-            "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{er}/predictions_m{min_ab}.tsv",
-            voc=pangolin,
-            ab=abus,
-            er=errors,
+            "benchmarks/{{dataset}}_{{format}}/out/{{voc}}_ab{{ab}}_er{{er}}/predictions_m{min_ab}.tsv",
             min_ab=config["min_ab"],
         ),
-        dir=directory("benchmarks/{dataset}_{format}/out"),
     params:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
-    threads: 12
+    threads: workflow.cores
     run:
         outdir = output.dir
         shell("mkdir -p {outdir}")
-        for voc in pangolin:
-            for ab in abus:
-                for er in errors:
-                    shell(
-                        "kallisto quant -t {threads} -b {config[bootstraps]} "
-                        "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{er} "
-                        "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_1.fastq "
-                        "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_2.fastq "
-                        "| tee {outdir}/{voc}_ab{ab}_er{er}.log"
-                    )
-                    shell(
-                        "python pipeline/output_abundances.py "
-                        "-m {config[min_ab]} "
-                        "-o {outdir}/{voc}_ab{ab}_er{er}/predictions_m{config[min_ab]}.tsv "
-                        "--metadata {config[ref]}/metadata.tsv "
-                        "--voc {params.vocs} "
-                        "{outdir}/{voc}_ab{ab}_er{er}/abundance.tsv "
-                        "| tee -a {outdir}/{voc}_ab{ab}_er{er}.log"
-                    )
+        shell(
+            "kallisto quant -t {threads} -b {config[bootstraps]} "
+            "-i {input.idx} -o {outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er} "
+            "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}_1.fastq "
+            "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}_2.fastq "
+        )
+        shell(
+            "python pipeline/output_abundances.py "
+            "-m {config[min_ab]} "
+            "-o {outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}/predictions_m{config[min_ab]}.tsv "
+            "--metadata {config[ref]}/metadata.tsv "
+            "--voc {params.vocs} "
+            "{outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}/abundance.tsv "
+        )
+
+
+# rule run_kallisto_error_compare:
+#     input:
+#         idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
+#         wwsim1=expand(
+#             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
+#             voc=pangolin,
+#             ab=abus,
+#             er=errors,
+#         ),
+#         wwsim2=expand(
+#             "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
+#             voc=pangolin,
+#             ab=abus,
+#             er=errors,
+#         ),
+#     output:
+#         expand(
+#             "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{er}/predictions_m{min_ab}.tsv",
+#             voc=pangolin,
+#             ab=abus,
+#             er=errors,
+#             min_ab=config["min_ab"],
+#         ),
+#         dir=directory("benchmarks/{dataset}_{format}/out"),
+#     params:
+#         vocs=lambda wildcards, input: ",".join(config["vocs"]),
+#     threads: 12
+#     run:
+#         outdir = output.dir
+#         shell("mkdir -p {outdir}")
+#         for voc in pangolin:
+#             for ab in abus:
+#                 for er in errors:
+#                     shell(
+#                         "kallisto quant -t {threads} -b {config[bootstraps]} "
+#                         "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{er} "
+#                         "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_1.fastq "
+#                         "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_2.fastq "
+#                         "| tee {outdir}/{voc}_ab{ab}_er{er}.log"
+#                     )
+#                     shell(
+#                         "python pipeline/output_abundances.py "
+#                         "-m {config[min_ab]} "
+#                         "-o {outdir}/{voc}_ab{ab}_er{er}/predictions_m{config[min_ab]}.tsv "
+#                         "--metadata {config[ref]}/metadata.tsv "
+#                         "--voc {params.vocs} "
+#                         "{outdir}/{voc}_ab{ab}_er{er}/abundance.tsv "
+#                         "| tee -a {outdir}/{voc}_ab{ab}_er{er}.log"
+#                     )
 
 
 rule run_kallisto_chimeric_compare:
