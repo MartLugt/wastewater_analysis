@@ -215,36 +215,50 @@ rule run_kallisto:
                 )
 
 
-rule run_kallisto_single_job:
+rule run_kallisto_batch_jobs:
     input:
         idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
-        wwsim1="benchmarks/{dataset}_{format}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
-        wwsim2="benchmarks/{dataset}_{format}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
+        wwsim1=expand(
+            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{{er}}_1.fastq",
+            voc=pangolin,
+            ab=abus,
+        ),
+        wwsim2=expand(
+            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{{er}}_2.fastq",
+            voc=pangolin,
+            ab=abus,
+        ),
     output:
-        expand(
-            "benchmarks/{{dataset}}_{{format}}/out/{{voc}}_ab{{ab}}_er{{er}}/predictions_m{min_ab}.tsv",
+        preds=expand(
+            "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{{er}}/predictions_m{min_ab}.tsv",
+            voc=pangolin,
+            ab=abus,
             min_ab=config["min_ab"],
         ),
     params:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
-    threads: workflow.cores
+    threads: config["bootstraps"]
     run:
-        outdir = output.dir
+        outdir = str(output.preds).split("/")[0:-2]
         shell("mkdir -p {outdir}")
-        shell(
-            "kallisto quant -t {threads} -b {config[bootstraps]} "
-            "-i {input.idx} -o {outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er} "
-            "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}_1.fastq "
-            "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}_2.fastq "
-        )
-        shell(
-            "python pipeline/output_abundances.py "
-            "-m {config[min_ab]} "
-            "-o {outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}/predictions_m{config[min_ab]}.tsv "
-            "--metadata {config[ref]}/metadata.tsv "
-            "--voc {params.vocs} "
-            "{outdir}/{wildcards.voc}_ab{wildcards.ab}_er{wildcards.er}/abundance.tsv "
-        )
+        for voc in pangolin:
+            for ab in abus:
+                shell(
+                    "srun --ntasks=1 --cpus-per-task={threads} "
+                    "kallisto quant -t {threads} -b {config[bootstraps]} "
+                    "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{wildcards.er} "
+                    "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{wildcards.er}_1.fastq "
+                    "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{wildcards.er}_2.fastq "
+                )
+                shell(
+                    "srun --ntasks=1 --cpus-per-task=1 "
+                    "python pipeline/output_abundances.py "
+                    "-m {config[min_ab]} "
+                    "-o {outdir}/{voc}_ab{ab}_er{wildcards.er}/predictions_m{config[min_ab]}.tsv "
+                    "--metadata {config[ref]}/metadata.tsv "
+                    "--voc {params.vocs} "
+                    "{outdir}/{voc}_ab{ab}_er{wildcards.er}/abundance.tsv "
+                )
 
 
 # rule run_kallisto_error_compare:
