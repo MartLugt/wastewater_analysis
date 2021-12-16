@@ -239,7 +239,7 @@ rule run_kallisto_batch_jobs:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
     threads: config["bootstraps"]
     run:
-        outdir = str(output.preds).split("/")[0:-2]
+        outdir = "/".join(str(output.preds[0]).split("/")[0:-2])
         shell("mkdir -p {outdir}")
         for voc in pangolin:
             for ab in abus:
@@ -251,7 +251,7 @@ rule run_kallisto_batch_jobs:
                     "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{wildcards.er}_2.fastq "
                 )
                 shell(
-                    "srun --ntasks=1 --cpus-per-task=1 "
+                    "srun --ntasks=1 --cpus-per-task={threads} "
                     "python pipeline/output_abundances.py "
                     "-m {config[min_ab]} "
                     "-o {outdir}/{voc}_ab{ab}_er{wildcards.er}/predictions_m{config[min_ab]}.tsv "

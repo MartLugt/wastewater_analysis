@@ -2,25 +2,23 @@ ref: "reference_sets/USA"
 
 min_ab: 0.1
 tot_cov: 1000
-spike_only: true
+spike_only: false
 
-bootstraps: 12
+bootstraps: 20
 
-vocs: ["B.1.1.7", "P.1"]
-lineages: ["1008906", "1194849"]
-# vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
-# lineages: ["1008906", "1001460", "1924762", "1194849"]
+vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
+lineages: ["1008906", "1001460", "1924762", "1194849"]
 
 plot_exts: ["png"]
 
-errors_scale_log: False
-errors_log: [0.001, 10, 5]
+errors_scale_log: True
+errors_log: [0.001, 10, 32]
 
 errors: # %
   [0, 0.01, 0.1, 1, 10]
 
 abundances_scale_log: True
-abundances_log: [0.1, 100, 5]
+abundances_log: [0.1, 100, 32]
 
 abundances:
   [

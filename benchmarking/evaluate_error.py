@@ -475,7 +475,7 @@ def main():
 
     #     for format in output_formats:
     #         plt.savefig("{}/{}/flat_test{}.{}".format(args.outdir, voc, args.suffix, format))
-    plt.show()
+    # plt.show()
     return
 
 def log_tick_formatter(val, pos=None):
