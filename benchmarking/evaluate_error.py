@@ -159,8 +159,10 @@ def main():
         os.makedirs(args.outdir + '/' + voc, exist_ok=True)
 
     # fix color per voc
-    colormap = cm.get_cmap('Set1', len(variant_list))
-    colors = {voc : colormap((i)/len(variant_list))
+    # print(len(variant_list))
+    # colormap = cm.get_cmap('tab10', len(variant_list))
+    # print(colormap)
+    colors = {voc : cm.tab10((i))
                 for i, voc in enumerate(variant_list)}
 
     # if args.joint_average:
@@ -215,6 +217,7 @@ def main():
         plt.plot(freq_values, err_values, label=voc, color=colors[voc])
         if (freq_values[0] > args.min_ab):
             plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
+    # plt.vlines(plot_single_err_val, 0, 100)
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
@@ -303,7 +306,7 @@ def main():
         plt.ylim(0.07, 150)
         plt.plot([0, 100], [0, 100], 'k-', lw=0.75)
         # plt.legend(prop={'size': 12}) #ncol=len(variants_list),
-        plt.colorbar(label='error rate')
+        plt.colorbar(label='Induced error rate (%)')
         plt.grid(which="both", alpha=0.2)
         plt.xlabel("True {} frequency (%)".format(voc))
         plt.ylabel("Estimated {} frequency (%)".format(voc))

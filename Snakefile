@@ -421,7 +421,8 @@ rule create_figs_compare_error:
     shell:
         "python benchmarking/evaluate_error.py "
         "--voc {params.vocs} "
-        "--plot_abundance_value 10 "
+        "--plot_abundance_value {config[plot_abundance_value]} "
+        "--plot_error_value {config[plot_error_value]} "
         "-o {output.dir} "
         "--output_format {params.exts} "
         "benchmarks/{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "

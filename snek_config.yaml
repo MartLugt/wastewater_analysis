@@ -10,6 +10,8 @@ vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
 lineages: ["1008906", "1001460", "1924762", "1194849"]
 
 plot_exts: ["png"]
+plot_error_value: 0
+plot_abundance_value: 10
 
 errors_scale_log: True
 errors_log: [0.001, 10, 32]
