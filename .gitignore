@@ -149,3 +149,9 @@ reference_sets/
 .snakemake/
 genome_data/
 .vscode
+
+readSimFFPE.R
+.RData
+.Rhistory
+nohup.out
+

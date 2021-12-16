@@ -127,8 +127,8 @@ def main():
 def select_benchmark_genomes(df, state, date, exclude_list):
     """Select genomes by location and date"""
     state_df = df.loc[df["Location"].str.contains(state)]
-    selection_df = state_df.loc[state_df["date"] == date]
-    print("\nLineage counts for {} on {}:".format(state, date))
+    selection_df = state_df # .loc[state_df["date"] == date]
+    print("\nLineage counts for {}:".format(state))
     print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
     selection_df = selection_df.loc[~selection_df["Pango lineage"].isin(exclude_list)]
