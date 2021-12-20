@@ -364,6 +364,8 @@ def main():
         for format in output_formats:
             plt.savefig("{}/{}/freq_error_error_scatter_3d{}.{}".format(args.outdir, voc, args.suffix, format))
 
+    if len(unique_err_vals) <= 1 or len(unique_freq_vals) <= 1:
+        return
 
     # plot 3d graph
     for voc in variant_list:

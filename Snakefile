@@ -75,20 +75,32 @@ rule create_benchmark_error_compare:
         spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
         json=lambda wildcards: json.dumps(config),
     run:
-        sid = "--sub_error " if "s" in wildcards.format else ""
-        sid += "--ins_error " if "i" in wildcards.format else ""
-        sid += "--del_error " if "d" in wildcards.format else ""
-        shell(
-            "python benchmarking/create_error_benchmarks.py "
-            "--voc_perc {params.percs} "
-            "--err_perc {params.errs} "
-            "-m {input.metadata} -fr {input.fasta} "
-            "-fv {params.vocs} "
-            "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
-            "--total_cov {config[tot_cov]} "
-            "{params.spike} "
-            "{sid} "
-        )
+        if "chimeric" in wildcards.format:
+            shell(
+                "python benchmarking/create_chimeric_benchmarks.py "
+                "--voc_perc {params.percs} "
+                "--chim_perc {params.errs} "
+                "-m {input.metadata} -fr {input.fasta} "
+                "-fv {params.vocs} "
+                "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
+                "--total_cov {config[tot_cov]} "
+                "{params.spike} "
+            )
+        else:
+            sid = "--sub_error " if "s" in wildcards.format else ""
+            sid += "--ins_error " if "i" in wildcards.format else ""
+            sid += "--del_error " if "d" in wildcards.format else ""
+            shell(
+                "python benchmarking/create_error_benchmarks.py "
+                "--voc_perc {params.percs} "
+                "--err_perc {params.errs} "
+                "-m {input.metadata} -fr {input.fasta} "
+                "-fv {params.vocs} "
+                "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
+                "--total_cov {config[tot_cov]} "
+                "{params.spike} "
+                "{sid} "
+            )
         shell("echo {params.json} > {output.snek}")
 
 

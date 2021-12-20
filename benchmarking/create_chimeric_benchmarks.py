@@ -9,6 +9,8 @@ from math import floor, log10
 
 from select_samples import filter_fasta, read_metadata
 
+from rpy2 import robjects
+from rpy2.robjects.packages import importr
 
 def main():
     parser = argparse.ArgumentParser(description="Create wastewater benchmarks.")
@@ -26,7 +28,6 @@ def main():
     # parser.add_argument('--sub_error_rate', dest='sub_error_rate', default=1.0, type=float, help="substitution error rate for art_illumina")
     # parser.add_argument('--ins_error_rate', dest='ins_error_rate', default=1.0, type=float, help="insertion error rate for art_illumina")
     # parser.add_argument('--del_error_rate', dest='del_error_rate', default=1.0, type=float, help="deletion error rate for art_illumina")
-
 
     args = parser.parse_args()
 
@@ -54,6 +55,23 @@ def main():
     metadata_out = args.outdir + "/metadata.tsv"
     selection_df.to_csv(metadata_out, sep='\t', index=False)
     print("Metadata for selected sequences is in {}".format(metadata_out))
+    # write all sequences to new fasta
+    fasta_full = args.outdir + '/full_sequences.fasta'
+    subprocess.check_call("cat {0}/sequences.fasta {1} > {2}"
+        .format(args.outdir, " ".join(VOC_files), fasta_full), shell=True)
+    print("Full fasta for all sequences is in {}/full_sequences.fasta".format(args.outdir))
+
+    # Init R
+    SimFFPE = importr('SimFFPE')
+    Biostrings = importr('Biostrings')
+
+    robjects.r('''
+        ## Get (redundant) phred score profile
+        PhredScoreProfilePath <- system.file("extdata", "PhredScoreProfile2.txt", package = "SimFFPE")
+
+        PhredScoreProfile <- as.matrix(read.table(PhredScoreProfilePath, skip = 1))
+        colnames(PhredScoreProfile) <- strsplit(readLines(PhredScoreProfilePath)[1], "\t")[[1]]
+    ''')
 
     if args.data_exploration_only:
         sys.exit()
@@ -70,7 +88,6 @@ def main():
             subprocess.check_call("reformat.sh in={} out={} fastawrap=0 overwrite=t forcetrimleft=21063 forcetrimright=25884".format(filename, trimmed_file), shell=True)
         fasta_selection = trimmed_selection
         print("\nSpike sequences ready\n")
-    
 
 
     # simulate reads
@@ -79,17 +96,22 @@ def main():
         background_cov = round((total_cov - VOC_cov) / len(selection_df.index), 2)
         voc_freq = str(round(float(voc_freq), 3))
         for chim_freq in chim_frequencies:
+            err_freq = float(chim_freq)
+            # chim_freq = str(round_sig(float(chim_freq) / 100))
             # simulate background sequence read
             print("Simulating background reads from {} at {}x coverage ".format(fasta_selection, background_cov))
             print("Chimeric read rate: {}%".format(chim_freq))
             if background_cov == 0:
                 print("Not simulating, coverage is 0")
-                subprocess.check_call("touch {2}/background_ab{0}_ch{1}.fq".format(background_cov, chim_freq, args.outdir), shell=True)
+                subprocess.check_call("touch {2}/background_ab{0}_er{1}.fq".format(background_cov, chim_freq, os.path.abspath(args.outdir)), shell=True)
             else:
-                subprocess.check_call("badread simulate --reference {0} --length 150,1 --quantity {1}x --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 98,100,1 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/background_ab{1}_ch{2}.fq"
-                    .format(fasta_selection, background_cov, chim_freq, args.outdir), shell=True)
-            # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/background_ab{1}_er{8}_ -m 250 -s 10 -qs {3} -qs2 {3} -ir {4} -ir2 {5} -dr {6} -dr2 {7}"
-                # .format(fasta_selection, background_cov, args.outdir, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
+                robjects.r('''
+                    sourceSeq = readDNAStringSet("{0}")
+                    refp <- "{1}"
+                    outFile <- "{4}/background_ab{2}_er{5}"
+                    readSimFFPE(sourceSeq, refp, PhredScoreProfile, outFile, coverage={2}, chimericProp={3}, sdInsertLen=10, chimMutRate=0, noiseRate=0, highNoiseRate=0, pairedEnd=TRUE, overWrite=TRUE)
+                '''.format(os.path.abspath(fasta_selection), os.path.abspath(fasta_full), background_cov, str(err_freq/100), os.path.abspath(args.outdir), chim_freq))
+            
             # simulate reads for VOC, merge and shuffle
             for filename in VOC_files:
                 VOC_name = filename.rstrip('.fasta').split('/')[-1]
@@ -99,30 +121,34 @@ def main():
                     voc_fasta = filename
                 print("Simulating reads from {} at {}x coverage".format(VOC_name, VOC_cov))
                 print("Chimeric read rate: {}%".format(chim_freq))
-                subprocess.check_call("badread simulate --reference {0} --length 150,1 --quantity {1}x --error_model random --qscore_model ideal --glitches 0,0,0 --junk_reads 0 --random_reads 0 --chimeras {2} --identity 98,100,1 --start_adapter_seq '' --end_adapter_seq '' --seed 0 > {3}/{4}_ab{1}_ch{2}.fq"
-                    .format(voc_fasta, VOC_cov, chim_freq, args.outdir, VOC_name), shell=True)
-                # subprocess.check_call("art_illumina -ss HS25 -rs 0 -i {0} -l 150 -f {1} -p -o {2}/{3}_ab{1}_er{9}_ -m 250 -s 10 -qs {4} -qs2 {4} -ir {5} -ir2 {6} -dr {7} -dr2 {8}"
-                #     .format(voc_fasta, VOC_cov, args.outdir, VOC_name, quality_shift, insRate1, insRate2, delRate1, delRate2, err_freq), shell=True)
+                robjects.r('''
+                    sourceSeq = readDNAStringSet("{0}")
+                    refp <- "{1}"
+                    outFile <- "{4}/{5}_ab{2}_er{6}"
+                    readSimFFPE(sourceSeq, refp, PhredScoreProfile, outFile, coverage={2}, chimericProp={3}, sdInsertLen=10, chimMutRate=0, noiseRate=0, highNoiseRate=0, pairedEnd=TRUE, overWrite=TRUE)
+                '''.format(os.path.abspath(voc_fasta), os.path.abspath(fasta_full), VOC_cov, str(err_freq/100), os.path.abspath(args.outdir), VOC_name, chim_freq))
+
+
                 print("\nMerging fastqs...")
-                subprocess.check_call("cat {0}/background_ab{3}_ch{2}.fq {0}/{1}_ab{4}_ch{2}.fq > {0}/tmp.fq"
+                subprocess.check_call("cat {0}/background_ab{3}_er{2}_1.fq {0}/{1}_ab{4}_er{2}_1.fq > {0}/tmp1.fq"
                     .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
-                # subprocess.check_call("cat {0}/background_ab{3}_ch{2}_2.fq {0}/{1}_ab{4}_er{2}_2.fq > {0}/tmp2.fq"
-                #     .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
+                subprocess.check_call("cat {0}/background_ab{3}_er{2}_2.fq {0}/{1}_ab{4}_er{2}_2.fq > {0}/tmp2.fq"
+                    .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
+
                 print("Shuffling reads...")
-                subprocess.check_call("shuffle.sh in={0}/tmp.fq out={0}/wwsim_{1}_ab{3}_ch{2}.fastq overwrite=t fastawrap=0 ignorebadquality"
+                subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_er{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_er{2}_2.fastq overwrite=t fastawrap=0"
                     .format(args.outdir, VOC_name, chim_freq, voc_freq), shell=True)
-                # subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_ch{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_ch{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality"
-                #     .format(args.outdir, VOC_name, chim_freq, voc_freq), shell=True)
+                
             print("\nBenchmarks with a chimeric read frequency of {}% are ready!\n\n".format(chim_freq))
     # clean up temporary files
-    os.remove("{}/tmp.fq".format(args.outdir))
-    # os.remove("{}/tmp2.fq".format(args.outdir))
+    os.remove("{}/tmp1.fq".format(args.outdir))
+    os.remove("{}/tmp2.fq".format(args.outdir))
     return
 
 def select_benchmark_genomes(df, state, date, exclude_list):
     """Select genomes by location and date"""
     state_df = df.loc[df["Location"].str.contains(state)]
-    selection_df = state_df.loc[state_df["date"] == date]
+    selection_df = state_df# .loc[state_df["date"] == date]
     print("\nLineage counts for {} on {}:".format(state, date))
     print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
