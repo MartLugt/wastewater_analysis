@@ -103,7 +103,8 @@ def main():
             print("Chimeric read rate: {}%".format(chim_freq))
             if background_cov == 0:
                 print("Not simulating, coverage is 0")
-                subprocess.check_call("touch {2}/background_ab{0}_er{1}.fq".format(background_cov, chim_freq, os.path.abspath(args.outdir)), shell=True)
+                subprocess.check_call("touch {2}/background_ab{0}_er{1}_1.fq".format(background_cov, chim_freq, os.path.abspath(args.outdir)), shell=True)
+                subprocess.check_call("touch {2}/background_ab{0}_er{1}_2.fq".format(background_cov, chim_freq, os.path.abspath(args.outdir)), shell=True)
             else:
                 robjects.r('''
                     sourceSeq = readDNAStringSet("{0}")
@@ -148,7 +149,7 @@ def main():
 def select_benchmark_genomes(df, state, date, exclude_list):
     """Select genomes by location and date"""
     state_df = df.loc[df["Location"].str.contains(state)]
-    selection_df = state_df# .loc[state_df["date"] == date]
+    selection_df = state_df.loc[state_df["date"] == date]
     print("\nLineage counts for {} on {}:".format(state, date))
     print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
