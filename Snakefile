@@ -67,7 +67,7 @@ rule create_benchmark_error_compare:
             er=errors,
         ),
         snek=touch("benchmarks/{dataset}_{format}/snek"),
-    threads: 12
+    threads: 2
     params:
         vocs=lambda wildcards, input: ",".join(input.voc),
         errs=lambda wildcards: ",".join([str(er) for er in errors]),
