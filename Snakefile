@@ -128,7 +128,7 @@ rule run_kallisto_batch_jobs:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
     threads: 2
     run:
-        outdir = str(output.preds).split("/")[0:-2]
+        outdir = "/".join(str(output.preds[0]).split("/")[0:-2])
         shell("mkdir -p {outdir}")
         for voc in pangolin:
             for ab in abus:
@@ -150,7 +150,7 @@ rule run_kallisto_batch_jobs:
                 )
 
 
-#rule run_kallisto_error_compare:
+# rule run_kallisto_error_compare:
 #    input:
 #        idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
 #        wwsim1=expand(
@@ -200,6 +200,7 @@ rule run_kallisto_batch_jobs:
 #                        "| tee -a {outdir}/{voc}_ab{ab}_er{er}.log"
 #                    )
 #
+
 
 rule create_figs_compare_error:
     input:
