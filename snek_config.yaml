@@ -2,12 +2,31 @@ ref: "reference_sets/USA"
 
 min_ab: 0.1
 tot_cov: 1000
-spike_only: false
+spike_only: True
 
 bootstraps: 0
 
 vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
 lineages: ["1008906", "1001460", "1924762", "1194849"]
+
+contaminants: [
+    # "AiV",
+    # "BKPolyomavirus",
+    # "EV",
+    # "HAdV",
+    # "HAV",
+    # "HEV",
+    # "HPyV",
+    # "JCPyV",
+    # "NoV-GI",
+    # "NoV-GII",
+    # "parechovirus",
+    # "PMMV",
+    # "reovirus",
+    # "RoV-A",
+    # "sapovirus",
+    "SARSCoV1",
+  ]
 
 plot_exts: ["png"]
 plot_error_value: 0
@@ -19,10 +38,10 @@ errors_log: [0.001, 10, 32]
 errors: # %
   [0.01, 0.1, 1, 10]
 
-abundances_scale_log: True
+abundances_scale_log: False
 abundances_log: [0.1, 100, 32]
 
-abundances: [0.1, 1, 10, 100]
+abundances: [1, 5, 10, 50, 100]
 # abundances:
 #   [
 #     0.05,

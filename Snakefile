@@ -44,8 +44,8 @@ errors = [
 
 wildcard_constraints:
     dataset="[^/]+",
-    # format="(?!chimeric)[^_]+",
-    format="[^_]+",
+    format="(?!contamination)[^_]+",
+    #format="[^_]+",
 
 
 rule create_benchmark_error_compare:
@@ -104,6 +104,47 @@ rule create_benchmark_error_compare:
         shell("echo {params.json} > {output.snek}")
 
 
+rule create_benchmark_contamination:
+    input:
+        fasta="genome_data/sequences.fasta",
+        metadata="genome_data/metadata.tsv",
+        voc=expand("genome_data/{voc}.fasta", voc=pangolin),
+        cont=expand(
+            "genome_data/contamination/{contaminant}.fasta",
+            contaminant=config["contaminants"],
+        ),
+    output:
+        expand(
+            "benchmarks/{{dataset}}_contamination/wwsim_{voc}_ab{ab}_1.fastq",
+            voc=pangolin,
+            ab=abus,
+        ),
+        expand(
+            "benchmarks/{{dataset}}_contamination/wwsim_{voc}_ab{ab}_2.fastq",
+            voc=pangolin,
+            ab=abus,
+        ),
+        snek=touch("benchmarks/{dataset}_contamination/snek"),
+    params:
+        vocs=lambda wildcards, input: ",".join(input.voc),
+        contaminants=lambda wildcards, input: ",".join(input.cont),
+        percs=lambda wildcards: ",".join([str(ab) for ab in abus]),
+        spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
+        json=lambda wildcards: json.dumps(config),
+    run:
+        shell(
+            "python benchmarking/create_contamination_benchmarks.py "
+            "-m {input.metadata} -fr {input.fasta} "
+            "-fv {params.vocs} "
+            "-fc {params.contaminants} "
+            "-o benchmarks/{wildcards.dataset}_contamination "
+            "--sars2_perc {params.percs} "
+            "--total_sars2_cov {config[tot_cov]} "
+            "{params.spike} "
+        )
+        shell("echo {params.json} > {output.snek}")
+
+
 rule run_kallisto_batch_jobs:
     input:
         idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
@@ -150,56 +191,46 @@ rule run_kallisto_batch_jobs:
                 )
 
 
-# rule run_kallisto_error_compare:
-#    input:
-#        idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
-#        wwsim1=expand(
-#            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_1.fastq",
-#            voc=pangolin,
-#            ab=abus,
-#            er=errors,
-#        ),
-#        wwsim2=expand(
-#            "benchmarks/{{dataset}}_{{format}}/wwsim_{voc}_ab{ab}_er{er}_2.fastq",
-#            voc=pangolin,
-#            ab=abus,
-#            er=errors,
-#        ),
-#    output:
-#        expand(
-#            "benchmarks/{{dataset}}_{{format}}/out/{voc}_ab{ab}_er{er}/predictions_m{min_ab}.tsv",
-#            voc=pangolin,
-#            ab=abus,
-#            er=errors,
-#            min_ab=config["min_ab"],
-#        ),
-#        dir=directory("benchmarks/{dataset}_{format}/out"),
-#    params:
-#        vocs=lambda wildcards, input: ",".join(config["vocs"]),
-#    threads: 12
-#    run:
-#        outdir = output.dir
-#        shell("mkdir -p {outdir}")
-#        for voc in pangolin:
-#            for ab in abus:
-#                for er in errors:
-#                    shell(
-#                        "kallisto quant -t {threads} -b {config[bootstraps]} "
-#                        "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{er} "
-#                        "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_1.fastq "
-#                        "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{er}_2.fastq "
-#                        "| tee {outdir}/{voc}_ab{ab}_er{er}.log"
-#                    )
-#                    shell(
-#                        "python pipeline/output_abundances.py "
-#                        "-m {config[min_ab]} "
-#                        "-o {outdir}/{voc}_ab{ab}_er{er}/predictions_m{config[min_ab]}.tsv "
-#                        "--metadata {config[ref]}/metadata.tsv "
-#                        "--voc {params.vocs} "
-#                        "{outdir}/{voc}_ab{ab}_er{er}/abundance.tsv "
-#                        "| tee -a {outdir}/{voc}_ab{ab}_er{er}.log"
-#                    )
-#
+rule run_kallisto_batch_jobs_contamination:
+    input:
+        idx=expand("{ref}/sequences.kallisto_idx", ref=config["ref"]),
+        wwsim1=expand(
+            "benchmarks/{{dataset}}_contamination/wwsim_{{voc}}_ab{ab}_1.fastq",
+            ab=abus,
+        ),
+        wwsim2=expand(
+            "benchmarks/{{dataset}}_contamination/wwsim_{{voc}}_ab{ab}_2.fastq",
+            ab=abus,
+        ),
+    output:
+        preds=expand(
+            "benchmarks/{{dataset}}_contamination/out/{{voc}}_ab{ab}/predictions_m{min_ab}.tsv",
+            ab=abus,
+            min_ab=config["min_ab"],
+        ),
+    params:
+        vocs=lambda wildcards, input: ",".join(config["vocs"]),
+    threads: 12
+    run:
+        outdir = "/".join(str(output.preds[0]).split("/")[0:-2])
+        shell("mkdir -p {outdir}")
+        for ab in abus:
+            shell(
+                # "srun --ntasks=1 --cpus-per-task={threads} "
+                "kallisto quant -t {threads} -b {config[bootstraps]} "
+                "-i {input.idx} -o {outdir}/{wildcards.voc}_ab{ab} "
+                "benchmarks/{wildcards.dataset}_contamination/wwsim_{wildcards.voc}_ab{ab}_1.fastq "
+                "benchmarks/{wildcards.dataset}_contamination/wwsim_{wildcards.voc}_ab{ab}_2.fastq "
+            )
+            shell(
+                # "srun --ntasks=1 --cpus-per-task=1 "
+                "python pipeline/output_abundances.py "
+                "-m {config[min_ab]} "
+                "-o {outdir}/{wildcards.voc}_ab{ab}/predictions_m{config[min_ab]}.tsv "
+                "--metadata {config[ref]}/metadata.tsv "
+                "--voc {params.vocs} "
+                "{outdir}/{wildcards.voc}_ab{ab}/abundance.tsv "
+            )
 
 
 rule create_figs_compare_error:
@@ -239,3 +270,36 @@ rule create_figs_compare_error:
         "benchmarks/{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "
         "&& echo {params.json} > {output.snek}"
         # "-m {config[min_ab]} "
+
+
+rule create_figs_contamination:
+    input:
+        expand(
+            "benchmarks/{{dataset}}_contamination/out/{voc}_ab{ab}/predictions_m{min_ab}.tsv",
+            voc=pangolin,
+            ab=abus,
+            min_ab=config["min_ab"],
+        ),
+    output:
+        expand(
+            "benchmarks/figs/{{dataset}}_contamination/{file}.{ext}",
+            ext=config["plot_exts"],
+            file=[
+                "freq_error_plot",
+                "freq_error_plot_logscale",
+                "freq_scatter_loglog",
+            ],
+        ),
+        snek="benchmarks/figs/{dataset}_contamination/snek",
+        dir=directory("benchmarks/figs/{dataset}_contamination"),
+    params:
+        vocs=lambda wildcards, input: ",".join(config["vocs"]),
+        exts=lambda wildcards, input: ",".join(config["plot_exts"]),
+        json=lambda wildcards, input: json.dumps(config),
+    shell:
+        "python benchmarking/evaluate_contamination.py "
+        "--voc {params.vocs} "
+        "-o {output.dir} "
+        "--output_format {params.exts} "
+        "benchmarks/{wildcards.dataset}_contamination/out/*/predictions_m{config[min_ab]}.tsv "
+        "&& echo {params.json} > {output.snek}"
