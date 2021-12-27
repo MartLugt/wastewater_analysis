@@ -140,6 +140,7 @@ rule create_benchmark_contamination:
             "-o benchmarks/{wildcards.dataset}_contamination "
             "--sars2_perc {params.percs} "
             "--total_sars2_cov {config[tot_cov]} "
+	    "--conts_amount {config[conts_amount]} "
             "{params.spike} "
         )
         shell("echo {params.json} > {output.snek}")
