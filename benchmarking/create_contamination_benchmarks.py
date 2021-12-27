@@ -24,6 +24,7 @@ def main():
     # parser.add_argument('--VOC_perc', dest='voc_perc', default=10, type=int, help="VOC coverage percentage (of total_sars2_cov)")
     parser.add_argument('--spike_only', action='store_true', help="simulate reads for spike region only")
     parser.add_argument('--no_errors', action='store_true', help="disable sequencing error simulation (ART)")
+    parser.add_argument('--conts_amount', dest='cont_amount', required=True, type=int, help="divisor for contamination files coverage. (Amount of contaminants).")
 
     args = parser.parse_args()
 
@@ -82,7 +83,7 @@ def main():
     for sars2_freq in SARS_CoV_2_frequencies:
         VOC_cov = round(total_sars2_cov * 10 / 100, 2)
         background_cov = round((total_sars2_cov - VOC_cov) / len(selection_df.index), 2)
-        contamination_cov = round((total_sars2_cov * (1 / (float(sars2_freq) / 100)) - total_sars2_cov) / 15, )# len(con_files), 2)
+        contamination_cov = round((total_sars2_cov * (1 / (float(sars2_freq) / 100)) - total_sars2_cov) / args.cont_amount, )# len(con_files), 2)
 
         # cov = round(total_cov * (float(sars2_freq) / 100), 2)
         # VOC_cov = round(cov * 10 / 100, 2)
