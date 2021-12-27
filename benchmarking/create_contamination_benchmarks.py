@@ -7,6 +7,8 @@ import subprocess
 import pandas as pd
 from math import floor, log10
 
+from create_error_benchmarks import select_benchmark_genomes
+
 from select_samples import filter_fasta, read_metadata
 
 
@@ -125,15 +127,6 @@ def main():
     os.remove("{}/tmp2.fq".format(args.outdir))
     return
 
-def select_benchmark_genomes(df, state, date, exclude_list):
-    """Select genomes by location and date"""
-    state_df = df.loc[df["Location"].str.contains(state)]
-    selection_df = state_df.loc[state_df["date"] == date]
-    print("\nLineage counts for {}:".format(state))
-    print(selection_df["Pango lineage"].value_counts())
-    print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
-    selection_df = selection_df.loc[~selection_df["Pango lineage"].isin(exclude_list)]
-    return selection_df
 
 def round_sig(x, sig=2):
     if x == 0: return x

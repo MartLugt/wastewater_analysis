@@ -124,14 +124,27 @@ def main():
     os.remove("{}/tmp2.fq".format(args.outdir))
     return
 
-def select_benchmark_genomes(df, state, date, exclude_list):
+def select_benchmark_genomes(df, state, date, exclude_list, variant_exclude_list=None):
     """Select genomes by location and date"""
     state_df = df.loc[df["Location"].str.contains(state)]
-    selection_df = state_df #.loc[state_df["date"] == date]
+    if date == "-":
+        selection_df = state_df
+        if not variant_exclude_list:
+            variant_exclude_list = ["VOC Alpha", "VOC Beta", "VOC Gamma", "VOC Delta"]
+    else:
+        selection_df = state_df.loc[state_df["date"] == date]
     print("\nLineage counts for {}:".format(state))
     print(selection_df["Pango lineage"].value_counts())
     print("\nExcluding VOC lineages {} from selection\n".format(exclude_list))
     selection_df = selection_df.loc[~selection_df["Pango lineage"].isin(exclude_list)]
+    if variant_exclude_list:
+        print("Excluding variants {} from selection \n".format(variant_exclude_list))
+        # selection_df = selection_df.loc[~selection_df["Variant"].isin(variant_exclude_list)]
+        pattern = "|".join(variant_exclude_list)
+        selection_df = selection_df.loc[~selection_df["Variant"].str.contains(pattern, na=False)]
+
+        print("\nLineage counts for {}:".format(state))
+        print(selection_df["Pango lineage"].value_counts())
     return selection_df
 
 def round_sig(x, sig=2):
