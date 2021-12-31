@@ -136,9 +136,12 @@ def main():
     variant_list = sorted(list(variant_set))
 
     # fix color per voc
-    colormap = cm.get_cmap('Accent', len(variant_list))
-    colors = {voc : colormap((i)/len(variant_list))
-                for i, voc in enumerate(variant_list)}
+    # colormap = cm.get_cmap('Accent', len(variant_list))
+    # colors = {voc : colormap((i)/len(variant_list))
+    #             for i, voc in enumerate(variant_list)}
+
+    colors = {voc : cm.tab10((i))
+            for i, voc in enumerate(variant_list)}
 
     if args.joint_average:
         # compute average error for jointly evaluated VOCs

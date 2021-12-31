@@ -85,6 +85,7 @@ rule create_benchmark_error_compare:
                 "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
                 "--total_cov {config[tot_cov]} "
                 "{params.spike} "
+                "-d '-' "
             )
         else:
             sid = "--sub_error " if "s" in wildcards.format else ""
@@ -100,6 +101,7 @@ rule create_benchmark_error_compare:
                 "--total_cov {config[tot_cov]} "
                 "{params.spike} "
                 "{sid} "
+                "-d '-' "
             )
         shell("echo {params.json} > {output.snek}")
 
@@ -140,7 +142,7 @@ rule create_benchmark_contamination:
             "-o benchmarks/{wildcards.dataset}_contamination "
             "--sars2_perc {params.percs} "
             "--total_sars2_cov {config[tot_cov]} "
-	    "--conts_amount {config[conts_amount]} "
+            "--conts_amount {config[conts_amount]} "
             "{params.spike} "
         )
         shell("echo {params.json} > {output.snek}")
@@ -175,14 +177,14 @@ rule run_kallisto_batch_jobs:
         for voc in pangolin:
             for ab in abus:
                 shell(
-                    "srun --ntasks=1 --cpus-per-task={threads} "
+                    # "srun --ntasks=1 --cpus-per-task={threads} "
                     "kallisto quant -t {threads} -b {config[bootstraps]} "
                     "-i {input.idx} -o {outdir}/{voc}_ab{ab}_er{wildcards.er} "
                     "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{wildcards.er}_1.fastq "
                     "benchmarks/{wildcards.dataset}_{wildcards.format}/wwsim_{voc}_ab{ab}_er{wildcards.er}_2.fastq "
                 )
                 shell(
-                    "srun --ntasks=1 --cpus-per-task=1 "
+                    # "srun --ntasks=1 --cpus-per-task=1 "
                     "python pipeline/output_abundances.py "
                     "-m {config[min_ab]} "
                     "-o {outdir}/{voc}_ab{ab}_er{wildcards.er}/predictions_m{config[min_ab]}.tsv "
