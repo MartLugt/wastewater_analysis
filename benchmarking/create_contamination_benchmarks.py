@@ -119,7 +119,7 @@ def main():
                 .format(args.outdir, background_cov, VOC_name, VOC_cov, contamination_cov), shell=True)
 
             print("Shuffling reads...")
-            subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{2}_1.fastq out2={0}/wwsim_{1}_ab{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality "
+            subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{2}_1.fastq out2={0}/wwsim_{1}_ab{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality"
                 .format(args.outdir, VOC_name, sars2_freq), shell=True)
      
         print("\nBenchmarks with a SARS-CoV-2 frequency of {}% are ready!\n\n".format(sars2_freq))
