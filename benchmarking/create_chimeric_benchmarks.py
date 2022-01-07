@@ -113,7 +113,7 @@ def main():
                     refp <- "{1}"
                     outFile <- "{4}/background_ab{2}_er{5}"
                     readSimFFPE(sourceSeq, refp, PhredScoreProfile, outFile, coverage={2}, chimericProp={3}, sdInsertLen=10, chimMutRate=0, noiseRate=0, highNoiseRate=0, pairedEnd=TRUE, overWrite=TRUE)
-                '''.format(os.path.abspath(fasta_selection), os.path.abspath(fasta_full), background_cov, str(err_freq/100), os.path.abspath(args.outdir), chim_freq))
+                '''.format(os.path.abspath(fasta_selection), os.path.abspath(fasta_selection), background_cov, str(err_freq/100), os.path.abspath(args.outdir), chim_freq))
             
             # simulate reads for VOC, merge and shuffle
             for filename in VOC_files:
@@ -129,7 +129,7 @@ def main():
                     refp <- "{1}"
                     outFile <- "{4}/{5}_ab{2}_er{6}"
                     readSimFFPE(sourceSeq, refp, PhredScoreProfile, outFile, coverage={2}, chimericProp={3}, sdInsertLen=10, chimMutRate=0, noiseRate=0, highNoiseRate=0, pairedEnd=TRUE, overWrite=TRUE)
-                '''.format(os.path.abspath(voc_fasta), os.path.abspath(fasta_full), VOC_cov, str(err_freq/100), os.path.abspath(args.outdir), VOC_name, chim_freq))
+                '''.format(os.path.abspath(voc_fasta), os.path.abspath(fasta_selection), VOC_cov, str(err_freq/100), os.path.abspath(args.outdir), VOC_name, chim_freq))
 
 
                 print("\nMerging fastqs...")
@@ -139,7 +139,7 @@ def main():
                     .format(args.outdir, VOC_name, chim_freq, background_cov, VOC_cov), shell=True)
 
                 print("Shuffling reads...")
-                subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_er{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_er{2}_2.fastq overwrite=t fastawrap=0"
+                subprocess.check_call("shuffle.sh in={0}/tmp1.fq in2={0}/tmp2.fq out={0}/wwsim_{1}_ab{3}_er{2}_1.fastq out2={0}/wwsim_{1}_ab{3}_er{2}_2.fastq overwrite=t fastawrap=0 ignorebadquality"
                     .format(args.outdir, VOC_name, chim_freq, voc_freq), shell=True)
                 
             print("\nBenchmarks with a chimeric read frequency of {}% are ready!\n\n".format(chim_freq))

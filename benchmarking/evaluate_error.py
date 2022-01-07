@@ -18,18 +18,17 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate predicted frequencies.")
     parser.add_argument('predictions', type=str, nargs='+', help="prediction files")
     parser.add_argument('--voc', dest='voc', type=str, required=True, help="comma-separated list of strains of interest")
-    parser.add_argument('-o,--outdir', dest='outdir', required=True)
-    parser.add_argument('-s,-suffix', dest='suffix', default="", help="add suffix to output figure names")
-    parser.add_argument('-v,--verbose', dest='verbose', action='store_true')
+    parser.add_argument('-o, --outdir', dest='outdir', required=True)
+    parser.add_argument('--suffix', dest='suffix', default="", help="add suffix to output figure names")
+    parser.add_argument('-v, --verbose', dest='verbose', action='store_true')
     parser.add_argument('--min_err', dest='min_err', default=0, type=float, help="minimal error (any samples with true error below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--min_ab', dest='min_ab', default=0, type=float, help="minimal abundance (any samples with true abundance below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--plot_error_value', dest='plot_err_val', default=1, type=float, help="error value for plots in which the error is not plotted. (Value is set to closest datapoint). Default: 1")
     parser.add_argument('--plot_abundance_value', dest='plot_ab_val', default=1, type=float, help="abundance value for plots in which the abundance is not plotted. (Value is set to closest datapoint). Default: 1")
     parser.add_argument('--no_plots', action='store_true')
-    parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="DOESNT WORK | comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
-    parser.add_argument('--joint_average', action='store_true', help="DOESNT WORK")
     parser.add_argument('--output_format', dest='output_format', default='png', help="comma-separated list of desired output formats")
     parser.add_argument('--chimeric', action="store_true", help="indicate dataset with chimeric reads")
+    parser.add_argument('--font_size', dest='font_size', default=12, type=int, help="set font size for the plots")
     args = parser.parse_args()
 
     false_pos_count = 0
@@ -39,7 +38,6 @@ def main():
     err_list = []
     variant_set = set()
     voc_list = args.voc.split(',')
-    joint_voc_list = args.joint_eval.split(',')
     output_formats = args.output_format.split(',')
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -77,24 +75,13 @@ def main():
                 if variant == voc_name:
                     variant_found = True
                     err_tups.append((voc_name, voc_freq, err_freq, abs_err, ab))
-                elif variant in joint_voc_list and voc_name in joint_voc_list:
-                    variant_found = True
-                    err_tups.append((voc_name, voc_freq, err_freq, abs_err, ab))
                 else:
-                    if args.joint_average and (variant in joint_voc_list
-                                               or voc_name in joint_voc_list):
-                        false_pos_count += 1/len(joint_voc_list)
-                    else:
-                        false_pos_count += 1
+                    false_pos_count += 1
                     if args.verbose:
                         print("False positive: {} predicted at {}% with {}% error in {}".format(
                                 variant, ab, err_freq, filename))
             if variant_found:
-                if args.joint_average and (variant in joint_voc_list
-                                           or voc_name in joint_voc_list):
-                    true_pos_count += 1/len(joint_voc_list)
-                else:
-                    true_pos_count += 1
+                true_pos_count += 1
                 if len(err_tups) == 1:
                     err_list.append(err_tups[0])
                 else:
@@ -104,22 +91,14 @@ def main():
                     abs_err = abs(ab - voc_freq)
                     err_list.append((voc_name, voc_freq, err_freq, abs_err, ab))
             else:
-                if args.joint_average and voc_name in joint_voc_list:
-                    false_neg_count += 1/len(joint_voc_list)
-                else:
-                    false_neg_count += 1
+                false_neg_count += 1
                 if args.verbose:
                     print("VOC not found in {}".format(filename))
                 # add zero estimate to error list?
                 # err_list.append((voc_name, voc_freq, err_freq, voc_freq, 0))
             for variant in voc_list:
                 if variant not in positives and variant != voc_name:
-                    # true negative
-                    if args.joint_average and (variant in joint_voc_list
-                                               or voc_name in joint_voc_list):
-                        true_neg_count += 1/len(joint_voc_list)
-                    else:
-                        true_neg_count += 1
+                    true_neg_count += 1
             true_neg_count += len([x for x in voc_list if
                                     x not in positives and x != voc_name])
 
@@ -207,7 +186,7 @@ def main():
     plot_single_frq_val = min(unique_freq_vals, key=lambda x:abs(x-args.plot_ab_val))
 
 
-    plt.rcParams.update({'font.size': 12}) # increase font size
+    plt.rcParams.update({'font.size': args.font_size}) # increase font size
 
     # abundance to relative error
     plt.figure()
