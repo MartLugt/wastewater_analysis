@@ -84,7 +84,7 @@ rule create_benchmark_error_compare:
                 "-fv {params.vocs} "
                 "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
                 "--total_cov {config[tot_cov]} "
-		"-d '-' "
+                "-d '-' "
                 "{params.spike} "
                 "-d '-' "
             )
@@ -100,7 +100,7 @@ rule create_benchmark_error_compare:
                 "-fv {params.vocs} "
                 "-o benchmarks/{wildcards.dataset}_{wildcards.format} "
                 "--total_cov {config[tot_cov]} "
-		"-d '-' "
+                "-d '-' "
                 "{params.spike} "
                 "{sid} "
                 "-d '-' "
@@ -146,8 +146,8 @@ rule create_benchmark_contamination:
             "--total_sars2_cov {config[tot_cov]} "
             "--conts_amount {config[conts_amount]} "
             "{params.spike} "
-	    "-d '-' "
-	    "--no_errors "
+            "-d '-' "
+            "--no_errors "
         )
         shell("echo {params.json} > {output.snek}")
 
@@ -251,7 +251,7 @@ rule create_figs_compare_error:
         ),
     output:
         expand(
-            "benchmarks/figs/{{dataset}}_{{format}}/{file}.{ext}",
+            "benchmarks/figs/{{dataset}}_{{format}}/{file}_{fonts}.{ext}",
             ext=config["plot_exts"],
             file=[
                 "freq_error_plot",
@@ -260,6 +260,7 @@ rule create_figs_compare_error:
                 "error_error_plot",
                 "error_error_plot_logscale",
             ],
+            fonts=config["plot_font_sizes"],
         ),
         snek="benchmarks/figs/{dataset}_{format}/snek",
         dir=directory("benchmarks/figs/{dataset}_{format}"),
@@ -267,16 +268,21 @@ rule create_figs_compare_error:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
         exts=lambda wildcards, input: ",".join(config["plot_exts"]),
         json=lambda wildcards, input: json.dumps(config),
-    shell:
-        "python benchmarking/evaluate_error.py "
-        "--voc {params.vocs} "
-        "--plot_abundance_value {config[plot_abundance_value]} "
-        "--plot_error_value {config[plot_error_value]} "
-        "-o {output.dir} "
-        "--output_format {params.exts} "
-        "benchmarks/{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "
-        "&& echo {params.json} > {output.snek}"
-        # "-m {config[min_ab]} "
+    run:
+        for size in config["plot_font_sizes"]:
+            shell(
+                "python benchmarking/evaluate_error.py "
+                "--voc {params.vocs} "
+                "--plot_abundance_value {config[plot_abundance_value]} "
+                "--plot_error_value {config[plot_error_value]} "
+                "-o {output.dir} "
+                "--output_format {params.exts} "
+                "--font_size {size} "
+                "--suffix _{size} "
+                "benchmarks/{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "
+                "&& echo {params.json} > {output.snek}"
+                # "-m {config[min_ab]} "
+            )
 
 
 rule create_figs_contamination:
@@ -289,13 +295,14 @@ rule create_figs_contamination:
         ),
     output:
         expand(
-            "benchmarks/figs/{{dataset}}_contamination/{file}.{ext}",
+            "benchmarks/figs/{{dataset}}_contamination/{file}_{fonts}.{ext}",
             ext=config["plot_exts"],
             file=[
                 "freq_error_plot",
                 "freq_error_plot_logscale",
                 "freq_scatter_loglog",
             ],
+            fonts=config["plot_font_sizes"],
         ),
         snek="benchmarks/figs/{dataset}_contamination/snek",
         dir=directory("benchmarks/figs/{dataset}_contamination"),
@@ -303,10 +310,15 @@ rule create_figs_contamination:
         vocs=lambda wildcards, input: ",".join(config["vocs"]),
         exts=lambda wildcards, input: ",".join(config["plot_exts"]),
         json=lambda wildcards, input: json.dumps(config),
-    shell:
-        "python benchmarking/evaluate_contamination.py "
-        "--voc {params.vocs} "
-        "-o {output.dir} "
-        "--output_format {params.exts} "
-        "benchmarks/{wildcards.dataset}_contamination/out/*/predictions_m{config[min_ab]}.tsv "
-        "&& echo {params.json} > {output.snek}"
+    run:
+        for size in config["plot_font_sizes"]:
+            shell(
+                "python benchmarking/evaluate_contamination.py "
+                "--voc {params.vocs} "
+                "-o {output.dir} "
+                "--output_format {params.exts} "
+                "--font_size {size} "
+                "--suffix _{size} "
+                "benchmarks/{wildcards.dataset}_contamination/out/*/predictions_m{config[min_ab]}.tsv "
+                "&& echo {params.json} > {output.snek}"
+            )

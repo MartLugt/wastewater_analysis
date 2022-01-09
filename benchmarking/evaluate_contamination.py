@@ -13,13 +13,14 @@ def main():
     parser.add_argument('predictions', type=str, nargs='+', help="prediction files")
     parser.add_argument('--voc', dest='voc', type=str, required=True, help="comma-separated list of strains of interest")
     parser.add_argument('-o,--outdir', dest='outdir', required=True)
-    parser.add_argument('-s,-suffix', dest='suffix', default="", help="add suffix to output figure names")
+    parser.add_argument('--suffix', dest='suffix', default="", help="add suffix to output figure names")
     parser.add_argument('-v,--verbose', dest='verbose', action='store_true')
     parser.add_argument('-m', dest='min_ab', default=0, type=float, help="minimal abundance (any samples with true abundance below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--no_plots', action='store_true')
     parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
     parser.add_argument('--joint_average', action='store_true')
     parser.add_argument('--output_format', dest='output_format', default='png', help="comma-separated list of desired output formats")
+    parser.add_argument('--font_size', dest='font_size', default=12, type=int, help="set font size for the plots")
     args = parser.parse_args()
 
     false_pos_count = 0
@@ -173,7 +174,7 @@ def main():
             variant_list.append(joint_voc_name)
             colors[joint_voc_name] = colors[joint_voc_list[0]]
 
-    plt.rcParams.update({'font.size': 14}) # increase font size
+    plt.rcParams.update({'font.size': args.font_size}) # increase font size
     plt.figure()
     for voc in variant_list:
         freq_values = [x[1] for x in err_list if x[0] == voc]
@@ -210,10 +211,11 @@ def main():
     plt.yscale('log')
     plt.xlim(0.07, 150)
     plt.ylim(0.07, 150)
-    plt.plot([0, 100], [0, 100], 'k-', lw=0.75)
+    # plt.plot([0, 100], [0, 100], 'k-', lw=0.75)
+    plt.hlines(10, 0, 150, 'k', lw=0.75)
     plt.legend(prop={'size': 12}) #ncol=len(variants_list),
     plt.grid(which="both", alpha=0.2)
-    plt.xlabel("True VOC frequency (%)")
+    plt.xlabel("Total SARS-CoV-2 frequency (%)")
     plt.ylabel("Estimated VOC frequency (%)")
     # # Hide the right and top spines
     # ax = plt.gca()
