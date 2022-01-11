@@ -17,8 +17,6 @@ def main():
     parser.add_argument('-v,--verbose', dest='verbose', action='store_true')
     parser.add_argument('-m', dest='min_ab', default=0, type=float, help="minimal abundance (any samples with true abundance below this threshold are skipped; any predictions below this threshold are considered absent)")
     parser.add_argument('--no_plots', action='store_true')
-    parser.add_argument('--joint_eval', dest='joint_eval', type=str, default="", help="comma-separated list of VOCs to be evaluated jointly (compare sum of estimates to sum of true frequencies)")
-    parser.add_argument('--joint_average', action='store_true')
     parser.add_argument('--output_format', dest='output_format', default='png', help="comma-separated list of desired output formats")
     parser.add_argument('--font_size', dest='font_size', default=12, type=int, help="set font size for the plots")
     parser.add_argument('--conts_in_meta', action='store_true', help="Enable if contaminants are present in metadata and kallisto index")
@@ -31,13 +29,14 @@ def main():
     err_list = []
     variant_set = set()
     voc_list = args.voc.split(',')
-    joint_voc_list = args.joint_eval.split(',')
     output_formats = args.output_format.split(',')
 
     # read predictions
     for filename in args.predictions:
         dir_name = filename.split('/')[-2]
+        dataset = filename.split('/')[-4]
         voc_name = dir_name.split('_')[0]
+        hcov = dataset.split('_')[-3]
         voc_freq = float(dir_name.split('_')[-1].lstrip('ab'))
         if voc_name not in voc_list:
             continue
@@ -63,25 +62,14 @@ def main():
                 positives.append(variant)
                 if variant == voc_name:
                     variant_found = True
-                    err_tups.append((voc_name, voc_freq, abs_err, ab))
-                elif variant in joint_voc_list and voc_name in joint_voc_list:
-                    variant_found = True
-                    err_tups.append((voc_name, voc_freq, abs_err, ab))
+                    err_tups.append((voc_name, voc_freq, abs_err, ab, hcov))
                 else:
-                    if args.joint_average and (variant in joint_voc_list
-                                               or voc_name in joint_voc_list):
-                        false_pos_count += 1/len(joint_voc_list)
-                    else:
                         false_pos_count += 1
-                    if args.verbose:
-                        print("False positive: {} predicted at {}% in {}".format(
-                                variant, ab, filename))
+                        if args.verbose:
+                            print("False positive: {} predicted at {}% in {}".format(
+                                    variant, ab, filename))
             if variant_found:
-                if args.joint_average and (variant in joint_voc_list
-                                           or voc_name in joint_voc_list):
-                    true_pos_count += 1/len(joint_voc_list)
-                else:
-                    true_pos_count += 1
+                true_pos_count += 1
                 if len(err_tups) == 1:
                     err_list.append(err_tups[0])
                 else:
@@ -89,12 +77,9 @@ def main():
                     voc_freq = err_tups[0][1]
                     ab = sum([x[3] for x in err_tups])
                     abs_err = abs(ab - voc_freq)
-                    err_list.append((voc_name, voc_freq, abs_err, ab))
+                    err_list.append((voc_name, voc_freq, abs_err, ab, hcov))
             else:
-                if args.joint_average and voc_name in joint_voc_list:
-                    false_neg_count += 1/len(joint_voc_list)
-                else:
-                    false_neg_count += 1
+                false_neg_count += 1
                 if args.verbose:
                     print("VOC not found in {}".format(filename))
                 # add zero estimate to error list?
@@ -102,13 +87,25 @@ def main():
             for variant in voc_list:
                 if variant not in positives and variant != voc_name:
                     # true negative
-                    if args.joint_average and (variant in joint_voc_list
-                                               or voc_name in joint_voc_list):
-                        true_neg_count += 1/len(joint_voc_list)
-                    else:
-                        true_neg_count += 1
+                    true_neg_count += 1
             true_neg_count += len([x for x in voc_list if
                                     x not in positives and x != voc_name ])
+
+    _, f, e, _, h = zip(*err_list)
+    unique_err_vals = list(set(e))
+    unique_freq_vals = list(set(f))
+    unique_hvoc_vals = list(set(h))
+
+    # compute averages
+    av_err_list = []
+    for hcov in unique_hvoc_vals:
+        h = filter(lambda x: x[4] is hcov, err_list)
+        for freq in unique_freq_vals:
+            f = filter(lambda x: x[1] is freq, h)
+            _, _, err, ab, _ = zip(*f)
+            av_err = sum(err) / len(f)
+            av_ab  = sum(ab)  / len(f)
+            av_err_list.append((hcov, freq, av_err, av_ab))
 
 
     # compute stats
@@ -147,45 +144,11 @@ def main():
     colors = {voc : cm.tab10((i))
             for i, voc in enumerate(variant_list)}
 
-    if args.joint_average:
-        # compute average error for jointly evaluated VOCs
-        if joint_voc_list != [""]:
-            err_tups = [x for x in err_list if x[0] in joint_voc_list]
-            new_err_list = [x for x in err_list if x[0] not in joint_voc_list]
-            joint_voc_name = '/'.join(joint_voc_list)
-            voc_freq = 0
-            voc_freq_errs = []
-            voc_freq_abs = []
-            for tup in err_tups:
-                if voc_freq > 0 and voc_freq != tup[1]:
-                    av_err = sum(voc_freq_errs) / len(voc_freq_errs)
-                    av_ab = sum(voc_freq_abs) / len(voc_freq_abs)
-                    new_err_list.append((joint_voc_name, voc_freq, av_err, av_ab))
-                    voc_freq_errs = []
-                    voc_freq_abs = []
-                voc_freq = tup[1]
-                voc_freq_errs.append(tup[2])
-                voc_freq_abs.append(tup[3])
-            # finally add last tuple
-            if voc_freq_errs:
-                av_err = sum(voc_freq_errs) / len(voc_freq_errs)
-                av_ab = sum(voc_freq_abs) / len(voc_freq_abs)
-                new_err_list.append((joint_voc_name, voc_freq, av_err, av_ab))
-            new_err_list.sort(key = lambda x : x[1])
-            err_list = new_err_list
-            variant_list = [voc for voc in variant_list if voc not in joint_voc_list]
-            variant_list.append(joint_voc_name)
-            colors[joint_voc_name] = colors[joint_voc_list[0]]
-
-    _, f, e, _ = zip(*err_list)
-    unique_err_vals = list(set(e))
-    unique_freq_vals = list(set(f))
-
     plt.rcParams.update({'font.size': args.font_size}) # increase font size
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] < 10]
-        err_values = [x[2]/10*100 for x in err_list if x[0] == voc and x[2] < 10]
+        freq_values = [x[1] for x in av_err_list if x[0] == voc and x[2] < 10]
+        err_values = [x[2]/10*100 for x in av_err_list if x[0] == voc and x[2] < 10]
         plt.plot(freq_values, err_values, label=voc, color=colors[voc])
         if (freq_values[0] > min(unique_freq_vals)):
             plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
@@ -212,8 +175,8 @@ def main():
     # plot true vs estimated frequencies on a scatterplot
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc]
-        est_values = [x[3] for x in err_list if x[0] == voc]
+        freq_values = [x[1] for x in av_err_list if x[0] == voc]
+        est_values = [x[3] for x in av_err_list if x[0] == voc]
         plt.scatter(freq_values, est_values, label=voc, alpha=0.7,
                     color=colors[voc], s=20)
     plt.xscale('log')
