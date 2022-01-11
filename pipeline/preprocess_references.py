@@ -6,6 +6,7 @@ import argparse
 import pandas as pd
 import glob
 import datetime as dt
+import math
 
 
 def main():
@@ -71,6 +72,7 @@ def main():
         if args.enddate:
             samples = samples.loc[
                         samples["date"] <= pd.to_datetime(args.enddate)]
+
         # randomly select sequences
         select_n = min(len(samples), args.select_k)
         selection = samples.sample(n=select_n, random_state=args.seed)
@@ -80,10 +82,12 @@ def main():
             continue
         elif select_n == 1:
             gisaid_id = selection["Accession ID"].item()
-            seq_name = "{}|{}|{}".format(selection["Virus name"].item(),
-                                         selection["Collection date"].item(),
-                                         selection["Submission date"].item())
-            # print(seq_name)
+            if ( math.isnan(selection["Collection date"].item()) or math.isnan(selection["Submission date"].item())):
+                seq_name = selection["Virus name"].item()
+            else:
+                seq_name = "{}|{}|{}".format(selection["Virus name"].item(),
+                                             selection["Collection date"].item(),
+                                             selection["Submission date"].item())
             selection_dict[seq_name] = (lin_id, gisaid_id)
         else:
             gisaid_ids = list(selection["Accession ID"])
@@ -91,9 +95,12 @@ def main():
             collection_dates = list(selection["Collection date"])
             submission_dates = list(selection["Submission date"])
             for i, gisaid_id in enumerate(gisaid_ids):
-                seq_name = '{}|{}|{}'.format(seq_names[i],
-                                             collection_dates[i],
-                                             submission_dates[i])
+                if ( math.isnan(collection_dates[i]) or math.isnan(submission_dates[i])):
+                    seq_name = seq_names[i]
+                else:
+                    seq_name = '{}|{}|{}'.format(seq_names[i],
+                                                 collection_dates[i],
+                                                 submission_dates[i])
                 # print(seq_name)
                 selection_dict[seq_name] = (lin_id, gisaid_id)
         lineages_with_sequence.append(lin_id)
@@ -120,6 +127,7 @@ def main():
                     print("{} sequences from selection found".format(selection_idx))
                 # seq_id = line.rstrip('\n').lstrip('>').split('|')[0]
                 seq_id = line.rstrip('\n').lstrip('>').split()[0]
+                # print(selection_dict.keys())
                 try:
                     lin_id, gisaid_id = selection_dict[seq_id]
                     seq = ""
