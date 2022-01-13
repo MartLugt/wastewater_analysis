@@ -184,11 +184,11 @@ def main():
     plt.rcParams.update({'font.size': args.font_size}) # increase font size
     plt.figure()
     for voc in variant_list:
-        freq_values = [x[1] for x in err_list if x[0] == voc and x[2] < 10]
-        err_values = [x[2]/10*100 for x in err_list if x[0] == voc and x[2] < 10]
+        freq_values = [x[1] for x in err_list if x[0] == voc]# and x[2] < 10]
+        err_values = [x[2]/10*100 for x in err_list if x[0] == voc]# and x[2] < 10]
         plt.plot(freq_values, err_values, label=voc, color=colors[voc])
-        if (freq_values[0] > min(unique_freq_vals)):
-            plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
+        # if (freq_values[0] > min(unique_freq_vals)):
+        #     plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)

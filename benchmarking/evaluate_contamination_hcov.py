@@ -6,7 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-
+import math
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate predicted frequencies.")
@@ -36,7 +36,7 @@ def main():
         dir_name = filename.split('/')[-2]
         dataset = filename.split('/')[-4]
         voc_name = dir_name.split('_')[0]
-        hcov = dataset.split('_')[-3]
+        hcov = dataset.split('_')[-2]
         voc_freq = float(dir_name.split('_')[-1].lstrip('ab'))
         if voc_name not in voc_list:
             continue
@@ -99,9 +99,8 @@ def main():
     # compute averages
     av_err_list = []
     for hcov in unique_hvoc_vals:
-        h = filter(lambda x: x[4] is hcov, err_list)
         for freq in unique_freq_vals:
-            f = filter(lambda x: x[1] is freq, h)
+            f = list(filter(lambda x: x[4] == hcov and x[1] == freq, err_list))
             _, _, err, ab, _ = zip(*f)
             av_err = sum(err) / len(f)
             av_ab  = sum(ab)  / len(f)
@@ -133,25 +132,26 @@ def main():
         sys.exit()
 
     # sort error tuples by voc frequency
-    err_list.sort(key = lambda x : x[1])
-    variant_list = sorted(list(variant_set))
+    av_err_list.sort(key = lambda x : x[1])
+    # err_list.sort(key = lambda x : x[1])
+    # variant_list = sorted(list(variant_set))
 
     # fix color per voc
     # colormap = cm.get_cmap('Accent', len(variant_list))
     # colors = {voc : colormap((i)/len(variant_list))
     #             for i, voc in enumerate(variant_list)}
 
-    colors = {voc : cm.tab10((i))
-            for i, voc in enumerate(variant_list)}
+    colors = {hcov : cm.tab10((i))
+            for i, hcov in enumerate(unique_hvoc_vals)}
 
     plt.rcParams.update({'font.size': args.font_size}) # increase font size
     plt.figure()
-    for voc in variant_list:
-        freq_values = [x[1] for x in av_err_list if x[0] == voc and x[2] < 10]
-        err_values = [x[2]/10*100 for x in av_err_list if x[0] == voc and x[2] < 10]
-        plt.plot(freq_values, err_values, label=voc, color=colors[voc])
+    for hcov in unique_hvoc_vals:
+        freq_values = [x[1] for x in av_err_list if x[0] == hcov] # and x[2] < 10]
+        err_values = [x[2]/10*100 for x in av_err_list if x[0] == hcov] # and x[2] < 10]
+        plt.plot(freq_values, err_values, label=hcov, color=colors[hcov])
         if (freq_values[0] > min(unique_freq_vals)):
-            plt.plot(freq_values[0], err_values[0], marker="s", color=colors[voc], markersize=6)
+            plt.plot(freq_values[0], err_values[0], marker="s", color=colors[hcov], markersize=6)
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
@@ -174,11 +174,11 @@ def main():
 
     # plot true vs estimated frequencies on a scatterplot
     plt.figure()
-    for voc in variant_list:
-        freq_values = [x[1] for x in av_err_list if x[0] == voc]
-        est_values = [x[3] for x in av_err_list if x[0] == voc]
-        plt.scatter(freq_values, est_values, label=voc, alpha=0.7,
-                    color=colors[voc], s=20)
+    for hcov in unique_hvoc_vals:
+        freq_values = [x[1] for x in av_err_list if x[0] == hcov]
+        est_values = [x[3] for x in av_err_list if x[0] == hcov]
+        plt.scatter(freq_values, est_values, label=hcov, alpha=0.7,
+                    color=colors[hcov], s=20)
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(0.7, 150)
