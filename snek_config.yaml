@@ -1,8 +1,8 @@
-ref: "reference_sets/designer/control"
+ref: "reference_sets/USA_cont"
 conts_in_ref: False
 
 min_ab: 0.1
-tot_cov: 100
+tot_cov: 1000
 spike_only: True
 
 bootstraps: 0
@@ -13,7 +13,7 @@ designer_abu: 10.77
 vocs: ["B.1.1.7", "B.1.351", "B.1.617.2", "P.1"]
 lineages: ["1008906", "1001460", "1924762", "1194849"]
 
-conts_amount: 16
+conts_amount: 1.0666666666
 contaminants:
   [
     "AiV",
@@ -37,16 +37,16 @@ contaminants:
 plot_exts: ["png"]
 plot_font_sizes: [12, 16, 18]
 plot_error_value: 0
-plot_abundance_value: 10
+plot_abundance_value: 1
 
-errors_scale_log: False
+errors_scale_log: True
 errors_log: [0.001, 10, 32]
 
 errors: # %
   [0.01, 0.1, 1, 10]
 
-abundances_scale_log: False
-abundances_log: [1, 100, 32]
+abundances_scale_log: True
+abundances_log: [0.1, 100, 32]
 
 abundances: [10.77]
 # abundances:

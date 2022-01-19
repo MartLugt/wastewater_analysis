@@ -111,48 +111,48 @@ rule create_benchmark_error_compare:
         shell("echo {params.json} > {output.snek}")
 
 
-rule create_benchmark_designer:
-    input:
-        fasta="reference_sets/designer/{ref}/sequences.fasta",
-        metadata="reference_sets/designer/{ref}/metadata.tsv",
-        voc=expand(
-            "reference_sets/designer/{{ref}}/{voc}.fa", voc=config["designer_vocs"]
-        ),
-    output:
-        expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{voc}_er{er}_1.fastq",
-            voc=config["designer_vocs"],
-            er=errors,
-        ),
-        expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{voc}_er{er}_2.fastq",
-            voc=config["designer_vocs"],
-            er=errors,
-        ),
-        snek=touch("benchmarks/des_{ref}_{dataset}_{format}/snek"),
-    threads: 2
-    params:
-        vocs=lambda wildcards, input: ",".join(input.voc),
-        errs=lambda wildcards: ",".join([str(er) for er in errors]),
-        spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
-        json=lambda wildcards: json.dumps(config),
-    run:
-        sid = "--sub_error " if "s" in wildcards.format else ""
-        sid += "--ins_error " if "i" in wildcards.format else ""
-        sid += "--del_error " if "d" in wildcards.format else ""
-        shell(
-            "python benchmarking/create_designer_benchmarks.py "
-            "--voc_perc {config[designer_abu]} "
-            "--err_perc {params.errs} "
-            "-m {input.metadata} -fr {input.fasta} "
-            "-fv {params.vocs} "
-            "-o benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format} "
-            "--total_cov {config[tot_cov]} "
-            "-d '-' "
-            "{params.spike} "
-            "{sid} "
-        )
-        shell("echo {params.json} > {output.snek}")
+# rule create_benchmark_designer:
+#     input:
+#         fasta="reference_sets/designer/{ref}/sequences.fasta",
+#         metadata="reference_sets/designer/{ref}/metadata.tsv",
+#         voc=expand(
+#             "reference_sets/designer/{{ref}}/{voc}.fa", voc=config["designer_vocs"]
+#         ),
+#     output:
+#         expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{voc}_er{er}_1.fastq",
+#             voc=config["designer_vocs"],
+#             er=errors,
+#         ),
+#         expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{voc}_er{er}_2.fastq",
+#             voc=config["designer_vocs"],
+#             er=errors,
+#         ),
+#         snek=touch("benchmarks/des_{ref}_{dataset}_{format}/snek"),
+#     threads: 2
+#     params:
+#         vocs=lambda wildcards, input: ",".join(input.voc),
+#         errs=lambda wildcards: ",".join([str(er) for er in errors]),
+#         spike=lambda wildcards: "--spike_only" if config["spike_only"] else "",
+#         json=lambda wildcards: json.dumps(config),
+#     run:
+#         sid = "--sub_error " if "s" in wildcards.format else ""
+#         sid += "--ins_error " if "i" in wildcards.format else ""
+#         sid += "--del_error " if "d" in wildcards.format else ""
+#         shell(
+#             "python benchmarking/create_designer_benchmarks.py "
+#             "--voc_perc {config[designer_abu]} "
+#             "--err_perc {params.errs} "
+#             "-m {input.metadata} -fr {input.fasta} "
+#             "-fv {params.vocs} "
+#             "-o benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format} "
+#             "--total_cov {config[tot_cov]} "
+#             "-d '-' "
+#             "{params.spike} "
+#             "{sid} "
+#         )
+#         shell("echo {params.json} > {output.snek}")
 
 
 rule create_benchmark_contamination:
@@ -245,47 +245,47 @@ rule run_kallisto_batch_jobs:
                 )
 
 
-rule run_kallisto_batch_jobs_designer:
-    input:
-        idx="reference_sets/designer/{ref}/sequences.kallisto_idx",
-        ref=config["ref"],
-        wwsim1=expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{{voc}}_er{er}_1.fastq",
-            er=errors,
-        ),
-        wwsim2=expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{{voc}}_er{er}_2.fastq",
-            er=errors,
-        ),
-    output:
-        preds=expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/out/{{voc}}_er{er}/predictions_m{min_ab}.tsv",
-            er=errors,
-            min_ab=config["min_ab"],
-        ),
-    params:
-        vocs=lambda wildcards, input: ",".join(config["designer_vocs"]),
-    threads: 12
-    run:
-        outdir = "/".join(str(output.preds[0]).split("/")[0:-2])
-        shell("mkdir -p {outdir}")
-        for er in errors:
-            shell(
-                # "srun --ntasks=1 --cpus-per-task={threads} "
-                "kallisto quant -t {threads} -b {config[bootstraps]} "
-                "-i {input.idx} -o {outdir}/{wildcards.voc}_er{er} "
-                "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_er{er}_1.fastq "
-                "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_er{er}_2.fastq "
-            )
-            shell(
-                # "srun --ntasks=1 --cpus-per-task=1 "
-                "python pipeline/output_abundances.py "
-                "-m {config[min_ab]} "
-                "-o {outdir}/{wildcards.voc}_er{er}/predictions_m{config[min_ab]}.tsv "
-                "--metadata reference_sets/designer/{wildcards.ref}/metadata.tsv "
-                "--voc {params.vocs} "
-                "{outdir}/{wildcards.voc}_er{er}/abundance.tsv "
-            )
+# rule run_kallisto_batch_jobs_designer:
+#     input:
+#         idx="reference_sets/designer/{ref}/sequences.kallisto_idx",
+#         ref=config["ref"],
+#         wwsim1=expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{{voc}}_er{er}_1.fastq",
+#             er=errors,
+#         ),
+#         wwsim2=expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/wwsim_{{voc}}_er{er}_2.fastq",
+#             er=errors,
+#         ),
+#     output:
+#         preds=expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/out/{{voc}}_er{er}/predictions_m{min_ab}.tsv",
+#             er=errors,
+#             min_ab=config["min_ab"],
+#         ),
+#     params:
+#         vocs=lambda wildcards, input: ",".join(config["designer_vocs"]),
+#     threads: 12
+#     run:
+#         outdir = "/".join(str(output.preds[0]).split("/")[0:-2])
+#         shell("mkdir -p {outdir}")
+#         for er in errors:
+#             shell(
+#                 # "srun --ntasks=1 --cpus-per-task={threads} "
+#                 "kallisto quant -t {threads} -b {config[bootstraps]} "
+#                 "-i {input.idx} -o {outdir}/{wildcards.voc}_er{er} "
+#                 "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_er{er}_1.fastq "
+#                 "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/wwsim_{wildcards.voc}_er{er}_2.fastq "
+#             )
+#             shell(
+#                 # "srun --ntasks=1 --cpus-per-task=1 "
+#                 "python pipeline/output_abundances.py "
+#                 "-m {config[min_ab]} "
+#                 "-o {outdir}/{wildcards.voc}_er{er}/predictions_m{config[min_ab]}.tsv "
+#                 "--metadata reference_sets/designer/{wildcards.ref}/metadata.tsv "
+#                 "--voc {params.vocs} "
+#                 "{outdir}/{wildcards.voc}_er{er}/abundance.tsv "
+#             )
 
 
 rule run_kallisto_batch_jobs_contamination:
@@ -375,49 +375,49 @@ rule create_figs_compare_error:
             )
 
 
-rule create_figs_compare_designer:
-    input:
-        expand(
-            "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/out/{voc}_er{er}/predictions_m{min_ab}.tsv",
-            voc=config["designer_vocs"],
-            ab=abus,
-            er=errors,
-            min_ab=config["min_ab"],
-        ),
-    output:
-        expand(
-            "benchmarks/figs/des_{{ref}}_{{dataset}}_{{format}}/{file}_{fonts}.{ext}",
-            ext=config["plot_exts"],
-            file=[
-                "freq_error_plot",
-                "freq_error_plot_logscale",
-                "freq_scatter_loglog",
-                "error_error_plot",
-                "error_error_plot_logscale",
-            ],
-            fonts=config["plot_font_sizes"],
-        ),
-        snek="benchmarks/figs/des_{ref}_{dataset}_{format}/snek",
-        dir=directory("benchmarks/figs/des_{ref}_{dataset}_{format}"),
-    params:
-        vocs=lambda wildcards, input: ",".join(config["designer_vocs"]),
-        exts=lambda wildcards, input: ",".join(config["plot_exts"]),
-        json=lambda wildcards, input: json.dumps(config),
-    run:
-        for size in config["plot_font_sizes"]:
-            shell(
-                "python benchmarking/evaluate_designer.py "
-                "--voc {params.vocs} "
-                "--abundance {config[designer_abu]} "
-                "--plot_error_value {config[plot_error_value]} "
-                "-o {output.dir} "
-                "--output_format {params.exts} "
-                "--font_size {size} "
-                "--suffix _{size} "
-                "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "
-                "&& echo {params.json} > {output.snek}"
-                # "-m {config[min_ab]} "
-            )
+# rule create_figs_compare_designer:
+#     input:
+#         expand(
+#             "benchmarks/des_{{ref}}_{{dataset}}_{{format}}/out/{voc}_er{er}/predictions_m{min_ab}.tsv",
+#             voc=config["designer_vocs"],
+#             ab=abus,
+#             er=errors,
+#             min_ab=config["min_ab"],
+#         ),
+#     output:
+#         expand(
+#             "benchmarks/figs/des_{{ref}}_{{dataset}}_{{format}}/{file}_{fonts}.{ext}",
+#             ext=config["plot_exts"],
+#             file=[
+#                 "freq_error_plot",
+#                 "freq_error_plot_logscale",
+#                 "freq_scatter_loglog",
+#                 "error_error_plot",
+#                 "error_error_plot_logscale",
+#             ],
+#             fonts=config["plot_font_sizes"],
+#         ),
+#         snek="benchmarks/figs/des_{ref}_{dataset}_{format}/snek",
+#         dir=directory("benchmarks/figs/des_{ref}_{dataset}_{format}"),
+#     params:
+#         vocs=lambda wildcards, input: ",".join(config["designer_vocs"]),
+#         exts=lambda wildcards, input: ",".join(config["plot_exts"]),
+#         json=lambda wildcards, input: json.dumps(config),
+#     run:
+#         for size in config["plot_font_sizes"]:
+#             shell(
+#                 "python benchmarking/evaluate_designer.py "
+#                 "--voc {params.vocs} "
+#                 "--abundance {config[designer_abu]} "
+#                 "--plot_error_value {config[plot_error_value]} "
+#                 "-o {output.dir} "
+#                 "--output_format {params.exts} "
+#                 "--font_size {size} "
+#                 "--suffix _{size} "
+#                 "benchmarks/des_{wildcards.ref}_{wildcards.dataset}_{wildcards.format}/out/*/predictions_m{config[min_ab]}.tsv "
+#                 "&& echo {params.json} > {output.snek}"
+#                 # "-m {config[min_ab]} "
+#             )
 
 
 rule create_figs_contamination:
@@ -458,6 +458,7 @@ rule create_figs_contamination:
                 "--font_size {size} "
                 "--suffix _{size} "
                 " {cir} "
+                "--full_cont_count {config[conts_amount]} "
                 "benchmarks/{wildcards.dataset}_contamination/out/*/predictions_m{config[min_ab]}.tsv "
                 "&& echo {params.json} > {output.snek}"
             )
