@@ -156,3 +156,5 @@ readSimFFPE.R
 nohup.out
 
 mutation_sim
+ref
+tmp
