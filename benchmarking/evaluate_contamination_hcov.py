@@ -96,6 +96,9 @@ def main():
     unique_freq_vals = list(set(f))
     unique_hvoc_vals = list(set(h))
 
+    unique_hvoc_vals.remove("Other")
+    unique_hvoc_vals.append("Other")
+
     # compute averages
     av_err_list = []
     for hcov in unique_hvoc_vals:
@@ -106,6 +109,12 @@ def main():
             av_ab  = sum(ab)  / len(f)
             av_err_list.append((hcov, freq, av_err, av_ab))
 
+    for hcov in unique_hvoc_vals:
+        f = list(filter(lambda x: x[0] == hcov, av_err_list))
+        _, _, err, _ = zip(*f)
+        pct_err = map(lambda x: x/10*100, err)
+        av = sum(pct_err) / len(f)
+        print("Average error for {}: {}%".format(hcov, av))
 
     # compute stats
     average_rel_err = sum([x[2]/x[1]*100 for x in err_list]) / len(err_list)
