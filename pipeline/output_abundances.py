@@ -53,6 +53,9 @@ def main():
 
     abundance_format = ""
     total_ab = 0
+
+    total_tpm_other = 0
+    total_ab_other = 0
     with open(args.abundances, 'r') as f:
         for line in f:
             line = line.rstrip('\n').split('\t')
@@ -83,6 +86,8 @@ def main():
                     abundance_dict[variant][1] += abundance
                 except KeyError as e:
                     # lineage not required for output
+                    total_tpm_other += tpm
+                    total_ab_other += abundance
                     pass
 
     # compute corrected abundances
@@ -98,7 +103,7 @@ def main():
                 corrected_ab = 0
             f.write("{}\t{:.0f}\t{:.2f}\t{:.2f}\n".format(
                     variant, tpm, ab * 100, corrected_ab * 100))
-
+        f.write("other\t{:.0f}\t{:.2f}\n".format(total_tpm_other, total_ab_other))
     return
 
 
