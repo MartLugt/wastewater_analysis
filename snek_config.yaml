@@ -46,7 +46,7 @@ errors: # %
   [0.01, 0.1, 1, 10]
 
 abundances_scale_log: True
-abundances_log: [0.1, 100, 32]
+abundances_log: [1, 100, 32]
 
 abundances: [10.77]
 # abundances:

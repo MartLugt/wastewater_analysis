@@ -49,7 +49,7 @@ def main():
 
         dir_name = filename.split('/')[-2]
         voc_name = dir_name.split('_')[0]
-        sars_freq = 100 - float(dir_name.split('_')[-1].lstrip('ab'))
+        sars_freq = float(dir_name.split('_')[-1].lstrip('ab'))
         if voc_name not in voc_list:
             continue
         if sars_freq == 0:
@@ -82,6 +82,7 @@ def main():
                     continue
 
                 # voc_freq = (-1.0 * sars_freq / args.cont_count)
+                # voc_freq = sars_freq / (sars_freq + (100 - sars_freq) * (1 / args.cont_count)) * 100
                 voc_freq = sars_freq
 
                 positives.append(variant)
@@ -179,7 +180,7 @@ def main():
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
-    plt.xlabel("Relative contamination (%)")
+    plt.xlabel("Total SARS-CoV-2 frequency (%)")
     plt.ylabel("Relative prediction error (%)")
     # plt.gcf().set_size_inches(4, 3)
     plt.tight_layout()
@@ -232,14 +233,14 @@ def main():
     # plt.xscale('function', functions=(f, g))
     plt.xscale('log')
     plt.yscale('log')
-    # plt.xlim(1.5 * min(unique_freq_vals), 0.7 * max(unique_freq_vals))
-    plt.xlim(0.7, 150)
+    plt.xlim(0.7 * min(unique_freq_vals), 1.5 * max(unique_freq_vals))
+    # plt.xlim(0.7, 150)
     plt.ylim(0.7, 150)
     # plt.plot([0, 100], [0, 100], 'k-', lw=0.75)
     plt.hlines(10, -150, 150, 'k', lw=0.75)
     plt.legend(prop={'size': args.font_size}) #ncol=len(variants_list),
     plt.grid(which="both", alpha=0.2)
-    plt.xlabel("Relative contamination (%)")
+    plt.xlabel("Total SARS-CoV-2 frequency (%)")
     plt.ylabel("Estimated VoC frequency (%)")
     # # Hide the right and top spines
     # ax = plt.gca()
