@@ -49,8 +49,10 @@ def main():
 
         dir_name = filename.split('/')[-2]
         voc_name = dir_name.split('_')[0]
-        sars_freq = float(dir_name.split('_')[-1].lstrip('ab'))
+        sars_freq = 100 - float(dir_name.split('_')[-1].lstrip('ab'))
         if voc_name not in voc_list:
+            continue
+        if sars_freq == 0:
             continue
         # elif voc_freq < args.min_ab:
         #     continue
@@ -74,7 +76,7 @@ def main():
                 if (args.conts_in_meta):
                     ab = ab * (100 / sars_freq)
                 if args.correct:
-                    ab = ab * (n_p / n_sars2)
+                    ab = ab * (n_p / n_sars2)   
                 abs_err = abs(ab - 10)
                 if ab < args.min_ab:
                     continue
@@ -238,7 +240,7 @@ def main():
     plt.legend(prop={'size': args.font_size}) #ncol=len(variants_list),
     plt.grid(which="both", alpha=0.2)
     plt.xlabel("Relative contamination (%)")
-    plt.ylabel("Estimated VOC frequency (%)")
+    plt.ylabel("Estimated VoC frequency (%)")
     # # Hide the right and top spines
     # ax = plt.gca()
     # ax.spines['top'].set_visible(False)

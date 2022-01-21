@@ -197,7 +197,7 @@ def main():
     plt.legend(prop={'size': args.font_size}) #ncol=len(variants_list),
     plt.grid(which="both", alpha=0.2)
     plt.xlabel("Total SARS-CoV-2 frequency (%)")
-    plt.ylabel("Estimated VOC frequency (%)")
+    plt.ylabel("Estimated VoC frequency (%)")
     # # Hide the right and top spines
     # ax = plt.gca()
     # ax.spines['top'].set_visible(False)

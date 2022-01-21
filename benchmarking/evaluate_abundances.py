@@ -92,7 +92,7 @@ def main():
                 else:
                     false_neg_count += 1
                 if args.verbose:
-                    print("VOC not found in {}".format(filename))
+                    print("VoC not found in {}".format(filename))
                 # add zero estimate to error list?
                 # err_list.append((voc_name, voc_freq, voc_freq, 0))
             for variant in voc_list:

@@ -200,7 +200,7 @@ def main():
     plt.legend()
     plt.grid(which="both", alpha=0.2)
     plt.ylim(-5, 105)
-    plt.xlabel("True VOC frequency (%)")
+    plt.xlabel("True VoC frequency (%)")
     plt.ylabel("Relative prediction error (%)")
     # plt.gcf().set_size_inches(4, 3)
     plt.tight_layout()
